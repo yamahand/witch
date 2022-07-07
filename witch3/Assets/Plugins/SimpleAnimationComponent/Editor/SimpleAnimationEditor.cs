@@ -14,29 +14,29 @@ public class SimpleAnimationEditor : Editor
         public static GUIContent cullingMode = new GUIContent("Culling Mode", "Controls what is updated when the object has been culled");
     }
 
-    SerializedProperty clip;
-    SerializedProperty states;
-    SerializedProperty playAutomatically;
-    SerializedProperty animatePhysics;
-    SerializedProperty cullingMode;
+    SerializedProperty _clip;
+    SerializedProperty _states;
+    SerializedProperty _playAutomatically;
+    SerializedProperty _animatePhysics;
+    SerializedProperty _cullingMode;
 
     void OnEnable()
     {
-        clip = serializedObject.FindProperty("m_Clip");
-        states = serializedObject.FindProperty("m_States");
-        playAutomatically = serializedObject.FindProperty("m_PlayAutomatically");
-        animatePhysics = serializedObject.FindProperty("m_AnimatePhysics");
-        cullingMode = serializedObject.FindProperty("m_CullingMode");
+        _clip = serializedObject.FindProperty("m_Clip");
+        _states = serializedObject.FindProperty("m_States");
+        _playAutomatically = serializedObject.FindProperty("m_PlayAutomatically");
+        _animatePhysics = serializedObject.FindProperty("m_AnimatePhysics");
+        _cullingMode = serializedObject.FindProperty("m_CullingMode");
     }
 
     public override void OnInspectorGUI()
     {
         serializedObject.Update();
-        EditorGUILayout.PropertyField(clip, Styles.animation);
-        EditorGUILayout.PropertyField(states, Styles.animations, true);
-        EditorGUILayout.PropertyField(playAutomatically, Styles.playAutomatically);
-        EditorGUILayout.PropertyField(animatePhysics, Styles.animatePhysics);
-        EditorGUILayout.PropertyField(cullingMode, Styles.cullingMode);
+        EditorGUILayout.PropertyField(_clip, Styles.animation);
+        EditorGUILayout.PropertyField(_states, Styles.animations, true);
+        EditorGUILayout.PropertyField(_playAutomatically, Styles.playAutomatically);
+        EditorGUILayout.PropertyField(_animatePhysics, Styles.animatePhysics);
+        EditorGUILayout.PropertyField(_cullingMode, Styles.cullingMode);
 
 
         serializedObject.ApplyModifiedProperties();
