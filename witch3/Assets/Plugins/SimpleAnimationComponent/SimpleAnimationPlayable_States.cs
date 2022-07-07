@@ -319,12 +319,12 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
         public void Pause()
         {
-            _playable.SetPlayState(PlayState.Paused);
+            _playable.Pause();
         }
 
         public void Play()
         {
-            _playable.SetPlayState(PlayState.Playing);
+            _playable.Play();
         }
 
         public void Stop()

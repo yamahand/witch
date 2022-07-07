@@ -6,6 +6,7 @@ using UnityEditor;
 #endif
 using UnityEngine;
 using UnityEngine.Playables;
+using UnityEngine.Animations;
 
 [RequireComponent(typeof(Animator))]
 public partial class SimpleAnimation: MonoBehaviour, IAnimationClipSource
@@ -246,10 +247,18 @@ public partial class SimpleAnimation: MonoBehaviour, IAnimationClipSource
 
         EnsureDefaultStateExists();
 
-        AnimationPlayableUtilities.Play(_animator, _playable.playable, _graph);
+        Play(_animator, _playable.playable, _graph);
         Play();
         Kick();
         _initialized = true;
+    }
+
+    private void Play(Animator animator, Playable playable, PlayableGraph graph)
+    {
+        AnimationPlayableOutput playableOutput = AnimationPlayableOutput.Create(graph, "AnimationClip", animator);
+        playableOutput.SetSourcePlayable(playable, 0);
+        graph.SetTimeUpdateMode(DirectorUpdateMode.GameTime);
+        graph.Play();
     }
 
     private void EnsureDefaultStateExists()

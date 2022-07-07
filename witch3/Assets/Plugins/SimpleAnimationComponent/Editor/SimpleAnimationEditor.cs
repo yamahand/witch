@@ -22,11 +22,11 @@ public class SimpleAnimationEditor : Editor
 
     void OnEnable()
     {
-        _clip = serializedObject.FindProperty("m_Clip");
-        _states = serializedObject.FindProperty("m_States");
-        _playAutomatically = serializedObject.FindProperty("m_PlayAutomatically");
-        _animatePhysics = serializedObject.FindProperty("m_AnimatePhysics");
-        _cullingMode = serializedObject.FindProperty("m_CullingMode");
+        _clip = serializedObject.FindProperty("_clip");
+        _states = serializedObject.FindProperty("_states");
+        _playAutomatically = serializedObject.FindProperty("_playAutomatically");
+        _animatePhysics = serializedObject.FindProperty("_animatePhysics");
+        _cullingMode = serializedObject.FindProperty("_cullingMode");
     }
 
     public override void OnInspectorGUI()
