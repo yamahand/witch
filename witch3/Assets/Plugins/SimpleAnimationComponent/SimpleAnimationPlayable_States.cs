@@ -7,59 +7,59 @@ using System;
 
 public partial class SimpleAnimationPlayable : PlayableBehaviour
 {
-    private int m_StatesVersion = 0;
+    private int _statesVersion = 0;
 
-    private void InvalidateStates() { m_StatesVersion++; }
+    private void InvalidateStates() { _statesVersion++; }
     private class StateEnumerable: IEnumerable<IState>
     {
-        private SimpleAnimationPlayable m_Owner;
+        private SimpleAnimationPlayable _owner;
         public StateEnumerable(SimpleAnimationPlayable owner)
         {
-            m_Owner = owner;
+            _owner = owner;
         }
 
         public IEnumerator<IState> GetEnumerator()
         {
-            return new StateEnumerator(m_Owner);
+            return new StateEnumerator(_owner);
         }
 
         IEnumerator IEnumerable.GetEnumerator()
         {
-            return new StateEnumerator(m_Owner);
+            return new StateEnumerator(_owner);
         }
 
         class StateEnumerator : IEnumerator<IState>
         {
-            private int m_Index = -1;
-            private int m_Version;
-            private SimpleAnimationPlayable m_Owner;
+            private int _index = -1;
+            private int _version;
+            private SimpleAnimationPlayable _owner;
             public StateEnumerator(SimpleAnimationPlayable owner)
             {
-                m_Owner = owner;
-                m_Version = m_Owner.m_StatesVersion;
+                _owner = owner;
+                _version = _owner._statesVersion;
                 Reset();
             }
 
-            private bool IsValid() { return m_Owner != null && m_Version == m_Owner.m_StatesVersion; }
+            private bool IsValid() { return _owner != null && _version == _owner._statesVersion; }
 
             IState GetCurrentHandle(int index)
             {
                 if (!IsValid())
                     throw new InvalidOperationException("The collection has been modified, this Enumerator is invalid");
 
-                if (index < 0 || index >= m_Owner.m_States.Count)
+                if (index < 0 || index >= _owner._states.count)
                     throw new InvalidOperationException("Enumerator is invalid");
 
-                StateInfo state = m_Owner.m_States[index];
+                StateInfo state = _owner._states[index];
                 if (state == null)
                     throw new InvalidOperationException("Enumerator is invalid");
 
-                return new StateHandle(m_Owner, state.index, state.playable);
+                return new StateHandle(_owner, state.index, state.playable);
             }
 
-            object IEnumerator.Current { get { return GetCurrentHandle(m_Index); } }
+            object IEnumerator.Current { get { return GetCurrentHandle(_index); } }
 
-            IState IEnumerator<IState>.Current { get { return GetCurrentHandle(m_Index); } }
+            IState IEnumerator<IState>.Current { get { return GetCurrentHandle(_index); } }
 
             public void Dispose() { }
 
@@ -69,16 +69,16 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
                     throw new InvalidOperationException("The collection has been modified, this Enumerator is invalid");
 
                 do
-                { m_Index++; } while (m_Index < m_Owner.m_States.Count && m_Owner.m_States[m_Index] == null);
+                { _index++; } while (_index < _owner._states.count && _owner._states[_index] == null);
 
-                return m_Index < m_Owner.m_States.Count;
+                return _index < _owner._states.count;
             }
 
             public void Reset()
             {
                 if (!IsValid())
                     throw new InvalidOperationException("The collection has been modified, this Enumerator is invalid");
-                m_Index = -1;
+                _index = -1;
             }
         }
     }
@@ -104,20 +104,21 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         AnimationClip clip { get; }
 
         WrapMode wrapMode { get; }
+        Playable playable { get; }
     }
 
     public class StateHandle : IState
     {
         public StateHandle(SimpleAnimationPlayable s, int index, Playable target)
         {
-            m_Parent = s;
-            m_Index = index;
-            m_Target = target;
+            _parent = s;
+            _index = index;
+            _target = target;
         }
 
         public bool IsValid()
         {
-            return m_Parent.ValidateInput(m_Index, m_Target);
+            return _parent.ValidateInput(_index, _target);
         }
 
         public bool enabled
@@ -126,7 +127,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States[m_Index].enabled;
+                return _parent._states[_index].enabled;
             }
 
             set
@@ -134,9 +135,9 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
                 if (value)
-                    m_Parent.m_States.EnableState(m_Index);
+                    _parent._states.EnableState(_index);
                 else
-                    m_Parent.m_States.DisableState(m_Index);
+                    _parent._states.DisableState(_index);
 
             }
         }
@@ -147,13 +148,13 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States.GetStateTime(m_Index);
+                return _parent._states.GetStateTime(_index);
             }
             set
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                m_Parent.m_States.SetStateTime(m_Index, value);
+                _parent._states.SetStateTime(_index, value);
             }
         }
 
@@ -164,22 +165,22 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
 
-                float length = m_Parent.m_States.GetClipLength(m_Index);
+                float length = _parent._states.GetClipLength(_index);
                 if (length == 0f)
                     length = 1f;
 
-                return m_Parent.m_States.GetStateTime(m_Index) / length;
+                return _parent._states.GetStateTime(_index) / length;
             }
             set
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
 
-                float length = m_Parent.m_States.GetClipLength(m_Index);
+                float length = _parent._states.GetClipLength(_index);
                 if (length == 0f)
                     length = 1f;
 
-                m_Parent.m_States.SetStateTime(m_Index, value *= length);
+                _parent._states.SetStateTime(_index, value *= length);
             }
         }
 
@@ -189,13 +190,13 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States.GetStateSpeed(m_Index);
+                return _parent._states.GetStateSpeed(_index);
             }
             set
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                m_Parent.m_States.SetStateSpeed(m_Index, value);
+                _parent._states.SetStateSpeed(_index, value);
             }
         }
 
@@ -205,7 +206,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States.GetStateName(m_Index);
+                return _parent._states.GetStateName(_index);
             }
             set
             {
@@ -213,7 +214,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
                     throw new System.InvalidOperationException("This StateHandle is not valid");
                 if (value == null)
                     throw new System.ArgumentNullException("A null string is not a valid name");
-                m_Parent.m_States.SetStateName(m_Index, value);
+                _parent._states.SetStateName(_index, value);
             }
         }
 
@@ -223,7 +224,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States[m_Index].weight;
+                return _parent._states[_index].weight;
             }
             set
             {
@@ -232,7 +233,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
                 if (value < 0)
                     throw new System.ArgumentException("Weights cannot be negative");
 
-                m_Parent.m_States.SetInputWeight(m_Index, value);
+                _parent._states.SetInputWeight(_index, value);
             }
         }
 
@@ -242,7 +243,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States.GetStateLength(m_Index);
+                return _parent._states.GetStateLength(_index);
             }
         }
 
@@ -252,7 +253,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States.GetStateClip(m_Index);
+                return _parent._states.GetStateClip(_index);
             }
         }
 
@@ -262,252 +263,263 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             {
                 if (!IsValid())
                     throw new System.InvalidOperationException("This StateHandle is not valid");
-                return m_Parent.m_States.GetStateWrapMode(m_Index);
+                return _parent._states.GetStateWrapMode(_index);
             }
         }
 
-        public int index { get { return m_Index; } }
+        public Playable playable { get { return _target; } }
 
-        private SimpleAnimationPlayable m_Parent;
-        private int m_Index;
-        private Playable m_Target;
+        public int index { get { return _index; } }
+
+        private SimpleAnimationPlayable _parent;
+        private int _index;
+        private Playable _target;
     }
 
     private class StateInfo
     {
         public void Initialize(string name, AnimationClip clip, WrapMode wrapMode)
         {
-            m_StateName = name;
-            m_Clip = clip;
-            m_WrapMode = wrapMode;
+            _stateName = name;
+            _clip = clip;
+            if (!clip.isLooping && clip.wrapMode == WrapMode.Default)
+            {
+                _wrapMode = WrapMode.Once;
+            }
+            else
+            {
+                _wrapMode = wrapMode;
+            }
         }
 
         public float GetTime()
         {
-            if (m_TimeIsUpToDate)
-                return m_Time;
+            if (_timeIsUpToDate)
+                return _time;
 
-            m_Time = (float)m_Playable.GetTime();
-            m_TimeIsUpToDate = true;
-            return m_Time;
+            _time = (float)_playable.GetTime();
+            _timeIsUpToDate = true;
+            return _time;
         }
 
         public void SetTime(float newTime)
         {
-            m_Time = newTime;
-            m_Playable.ResetTime(m_Time);
-            m_Playable.SetDone(m_Time >= m_Playable.GetDuration());
+            _time = newTime;
+            _playable.ResetTime(_time);
+            _playable.SetDone(_time >= _playable.GetDuration());
         }
 
         public void Enable()
         {
-            if (m_Enabled)
+            if (_enabled)
                 return;
 
-            m_EnabledDirty = true;
-            m_Enabled = true;
+            _enabledDirty = true;
+            _enabled = true;
         }
 
         public void Disable()
         {
-            if (m_Enabled == false)
+            if (_enabled == false)
                 return;
 
-            m_EnabledDirty = true;
-            m_Enabled = false;
+            _enabledDirty = true;
+            _enabled = false;
         }
 
         public void Pause()
         {
-            m_Playable.SetPlayState(PlayState.Paused);
+            //m_Playable.SetPlayState(PlayState.Paused);
+            _playable.Pause();
         }
 
         public void Play()
         {
-            m_Playable.SetPlayState(PlayState.Playing);
+            //m_Playable.SetPlayState(PlayState.Playing);
+            _playable.Play();
         }
 
         public void Stop()
         {
-            m_FadeSpeed = 0f;
+            _fadeSpeed = 0f;
             ForceWeight(0.0f);
             Disable();
             SetTime(0.0f);
-            m_Playable.SetDone(false);
+            _playable.SetDone(false);
             if (isClone)
             {
-                m_ReadyForCleanup = true;
+                _readyForCleanup = true;
             }
         }
 
         public void ForceWeight(float weight)
         {
-           m_TargetWeight = weight;
-           m_Fading = false;
-           m_FadeSpeed = 0f;
+           _targetWeight = weight;
+           _fading = false;
+           _fadeSpeed = 0f;
            SetWeight(weight);
         }
 
         public void SetWeight(float weight)
         {
-            m_Weight = weight;
-            m_WeightDirty = true;
+            _weight = weight;
+            _weightDirty = true;
         }
 
         public void FadeTo(float weight, float speed)
         {
-            m_Fading = Mathf.Abs(speed) > 0f;
-            m_FadeSpeed = speed;
-            m_TargetWeight = weight;
+            _fading = Mathf.Abs(speed) > 0f;
+            _fadeSpeed = speed;
+            _targetWeight = weight;
         }
 
         public void DestroyPlayable()
         {
-            if (m_Playable.IsValid())
+            if (_playable.IsValid())
             {
-                m_Playable.GetGraph().DestroySubgraph(m_Playable);
+                _playable.GetGraph().DestroySubgraph(_playable);
             }
         }
 
         public void SetAsCloneOf(StateHandle handle)
         {
-            m_ParentState = handle;
-            m_IsClone = true;
+            _parentState = handle;
+            _isClone = true;
         }
 
         public bool enabled
         {
-            get { return m_Enabled; }
+            get { return _enabled; }
         }
 
-        private bool m_Enabled;
+        private bool _enabled;
 
         public int index
         {
-            get { return m_Index; }
+            get { return _index; }
             set
             {
-                Debug.Assert(m_Index == 0, "Should never reassign Index");
-                m_Index = value;
+                Debug.Assert(_index == 0, "Should never reassign Index");
+                _index = value;
             }
         }
 
-        private int m_Index;
+        private int _index;
 
         public string stateName
         {
-            get { return m_StateName; }
-            set { m_StateName = value; }
+            get { return _stateName; }
+            set { _stateName = value; }
         }
 
-        private string m_StateName;
+        private string _stateName;
 
         public bool fading
         {
-            get { return m_Fading; }
+            get { return _fading; }
         }
 
-        private bool m_Fading;
+        private bool _fading;
 
 
-        private float m_Time;
+        private float _time;
 
         public float targetWeight
         {
-            get { return m_TargetWeight; }
+            get { return _targetWeight; }
         }
 
-        private float m_TargetWeight;
+        private float _targetWeight;
 
         public float weight
         {
-            get { return m_Weight; }
+            get { return _weight; }
         }
 
-        float m_Weight;
+        float _weight;
 
         public float fadeSpeed
         {
-            get { return m_FadeSpeed; }
+            get { return _fadeSpeed; }
         }
 
-        float m_FadeSpeed;
+        float _fadeSpeed;
 
         public float speed
         {
-            get { return (float)m_Playable.GetSpeed(); }
-            set { m_Playable.SetSpeed(value); }
+            get { return (float)_playable.GetSpeed(); }
+            set { _playable.SetSpeed(value); }
         }
 
         public float playableDuration
         {
-            get { return (float)m_Playable.GetDuration(); }
+            get { return (float)_playable.GetDuration(); }
         }
 
         public AnimationClip clip
         {
-            get { return m_Clip; }
+            get { return _clip; }
         }
 
-        private AnimationClip m_Clip;
+        private AnimationClip _clip;
 
         public void SetPlayable(Playable playable)
         {
-            m_Playable = playable;
+            _playable = playable;
         }
 
-        public bool isDone { get { return m_Playable.IsDone(); } }
+        public bool isDone { get { return _playable.IsDone(); } }
 
         public Playable playable
         {
-            get { return m_Playable; }
+            get { return _playable; }
         }
 
-        private Playable m_Playable;
+        private Playable _playable;
 
         public WrapMode wrapMode
         {
-            get { return m_WrapMode; }
+            get { return _wrapMode; }
         }
 
-        private WrapMode m_WrapMode;
+        private WrapMode _wrapMode;
 
         //Clone information
         public bool isClone
         {
-            get { return m_IsClone; }
+            get { return _isClone; }
         }
 
-        private bool m_IsClone;
+        private bool _isClone;
 
         public bool isReadyForCleanup
         {
-            get { return m_ReadyForCleanup; }
+            get { return _readyForCleanup; }
         }
 
-        private bool m_ReadyForCleanup;
+        private bool _readyForCleanup;
 
         public StateHandle parentState
         {
-            get { return m_ParentState; }
+            get { return _parentState; }
         }
 
-        public StateHandle m_ParentState;
+        public StateHandle _parentState;
 
-        public bool enabledDirty { get { return m_EnabledDirty; } }
-        public bool weightDirty { get { return m_WeightDirty; } }
+        public bool enabledDirty { get { return _enabledDirty; } }
+        public bool weightDirty { get { return _weightDirty; } }
 
         public void ResetDirtyFlags()
         { 
-            m_EnabledDirty = false;
-            m_WeightDirty = false;
+            _enabledDirty = false;
+            _weightDirty = false;
         }
 
-        private bool m_WeightDirty;
-        private bool m_EnabledDirty;
+        private bool _weightDirty;
+        private bool _enabledDirty;
 
-        public void InvalidateTime() { m_TimeIsUpToDate = false; }
-        private bool m_TimeIsUpToDate;
+        public void InvalidateTime() { _timeIsUpToDate = false; }
+        private bool _timeIsUpToDate;
     }
 
     private StateHandle StateInfoToHandle(StateInfo info)
@@ -517,63 +529,63 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private class StateManagement
     {
-        private List<StateInfo> m_States;
+        private List<StateInfo> _states;
 
-        public int Count { get { return m_Count; } }
+        public int count { get { return _count; } }
 
-        private int m_Count;
+        private int _count;
 
         public StateInfo this[int i]
         {
             get
             {
-                return m_States[i];
+                return _states[i];
             }
         }
 
         public StateManagement()
         {
-            m_States = new List<StateInfo>();
+            _states = new List<StateInfo>();
         }
 
         public StateInfo InsertState()
         {
             StateInfo state = new StateInfo();
 
-            int firstAvailable = m_States.FindIndex(s => s == null);
+            int firstAvailable = _states.FindIndex(s => s == null);
             if (firstAvailable == -1)
             {
-                firstAvailable = m_States.Count;
-                m_States.Add(state);
+                firstAvailable = _states.Count;
+                _states.Add(state);
             }
             else
             {
-                m_States.Insert(firstAvailable, state);
+                _states.Insert(firstAvailable, state);
             }
 
             state.index = firstAvailable;
-            m_Count++;
+            _count++;
             return state;
         }
         public bool AnyStatePlaying()
         {
-            return m_States.FindIndex(s => s != null && s.enabled) != -1;
+            return _states.FindIndex(s => s != null && s.enabled) != -1;
         }
 
         public void RemoveState(int index)
         {
-            StateInfo removed = m_States[index];
-            m_States[index] = null;
+            StateInfo removed = _states[index];
+            _states[index] = null;
             removed.DestroyPlayable();
-            m_Count = m_States.Count;
+            _count = _states.Count;
         }
 
         public bool RemoveClip(AnimationClip clip)
         {
             bool removed = false;
-            for (int i = 0; i < m_States.Count; i++)
+            for (int i = 0; i < _states.Count; i++)
             {
-                StateInfo state = m_States[i];
+                StateInfo state = _states[i];
                 if (state != null &&state.clip == clip)
                 {
                     RemoveState(i);
@@ -585,70 +597,70 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
         public StateInfo FindState(string name)
         {
-            int index = m_States.FindIndex(s => s != null && s.stateName == name);
+            int index = _states.FindIndex(s => s != null && s.stateName == name);
             if (index == -1)
                 return null;
 
-            return m_States[index];
+            return _states[index];
         }
 
         public void EnableState(int index)
         {
-            StateInfo state = m_States[index];
+            StateInfo state = _states[index];
             state.Enable();
         }
 
         public void DisableState(int index)
         {
-            StateInfo state = m_States[index];
+            StateInfo state = _states[index];
             state.Disable();
         }
 
         public void SetInputWeight(int index, float weight)
         {
-            StateInfo state = m_States[index];
+            StateInfo state = _states[index];
             state.SetWeight(weight);
            
         }
 
         public void SetStateTime(int index, float time)
         {
-            StateInfo state = m_States[index];
+            StateInfo state = _states[index];
             state.SetTime(time);
         }
 
         public float GetStateTime(int index)
         {
-            StateInfo state = m_States[index];
+            StateInfo state = _states[index];
             return state.GetTime();
         }
 
         public bool IsCloneOf(int potentialCloneIndex, int originalIndex)
         {
-            StateInfo potentialClone = m_States[potentialCloneIndex];
+            StateInfo potentialClone = _states[potentialCloneIndex];
             return potentialClone.isClone && potentialClone.parentState.index == originalIndex;
         }
 
         public float GetStateSpeed(int index)
         {
-            return m_States[index].speed;
+            return _states[index].speed;
         }
         public void SetStateSpeed(int index, float value)
         {
-            m_States[index].speed = value;
+            _states[index].speed = value;
         }
 
         public float GetInputWeight(int index)
         {
-            return m_States[index].weight;
+            return _states[index].weight;
         }
 
         public float GetStateLength(int index)
         {
-            AnimationClip clip = m_States[index].clip;
+            AnimationClip clip = _states[index].clip;
             if (clip == null)
                 return 0f;
-            float speed = m_States[index].speed;
+            float speed = _states[index].speed;
             if (speed == 0f)
                 return Mathf.Infinity;
 
@@ -657,7 +669,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
         public float GetClipLength(int index)
         {
-            AnimationClip clip = m_States[index].clip;
+            AnimationClip clip = _states[index].clip;
             if (clip == null)
                 return 0f;
 
@@ -666,27 +678,27 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
         public float GetStatePlayableDuration(int index)
         {
-            return m_States[index].playableDuration;
+            return _states[index].playableDuration;
         }
 
         public AnimationClip GetStateClip(int index)
         {
-            return m_States[index].clip;
+            return _states[index].clip;
         }
 
         public WrapMode GetStateWrapMode(int index)
         {
-            return m_States[index].wrapMode;
+            return _states[index].wrapMode;
         }
 
         public string GetStateName(int index)
         {
-            return m_States[index].stateName;
+            return _states[index].stateName;
         }
 
         public void SetStateName(int index, string name)
         {
-            m_States[index].stateName = name;
+            _states[index].stateName = name;
         }
 
         public void StopState(int index, bool cleanup)
@@ -697,22 +709,26 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             }
             else
             {
-                m_States[index].Stop();
+                _states[index].Stop();
             }
         }
 
+        public Playable GetPlayable(int index)
+        {
+            return _states[index].playable;
+        }
     }
 
     private struct QueuedState
     {
         public QueuedState(StateHandle s, float t)
         {
-            state = s;
-            fadeTime = t;
+            _state = s;
+            _fadeTime = t;
         }
 
-        public StateHandle state;
-        public float fadeTime;
+        public StateHandle _state;
+        public float _fadeTime;
     }
 
 }

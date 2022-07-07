@@ -22,11 +22,11 @@ public class SimpleAnimationEditor : Editor
 
     void OnEnable()
     {
-        clip = serializedObject.FindProperty("m_Clip");
-        states = serializedObject.FindProperty("m_States");
-        playAutomatically = serializedObject.FindProperty("m_PlayAutomatically");
-        animatePhysics = serializedObject.FindProperty("m_AnimatePhysics");
-        cullingMode = serializedObject.FindProperty("m_CullingMode");
+        clip = serializedObject.FindProperty("_clip");
+        states = serializedObject.FindProperty("_states");
+        playAutomatically = serializedObject.FindProperty("_playAutomatically");
+        animatePhysics = serializedObject.FindProperty("_animatePhysics");
+        cullingMode = serializedObject.FindProperty("_cullingMode");
     }
 
     public override void OnInspectorGUI()
@@ -73,10 +73,10 @@ class StateDrawer : PropertyDrawer
         Rect nameRect = new Rect(position.x + position.width/2 + 5, position.y, position.width/2 - 5, position.height);
 
 
-        EditorGUI.BeginDisabledGroup(property.FindPropertyRelative("defaultState").boolValue);
-            EditorGUI.PropertyField(nameRect, property.FindPropertyRelative("clip"), GUIContent.none);
-            EditorGUI.PropertyField(clipRect, property.FindPropertyRelative("name"), GUIContent.none);
-            if (property.FindPropertyRelative("defaultState").boolValue)
+        EditorGUI.BeginDisabledGroup(property.FindPropertyRelative("_defaultState").boolValue);
+            EditorGUI.PropertyField(nameRect, property.FindPropertyRelative("_clip"), GUIContent.none);
+            EditorGUI.PropertyField(clipRect, property.FindPropertyRelative("_name"), GUIContent.none);
+            if (property.FindPropertyRelative("_defaultState").boolValue)
             {
                 EditorGUI.LabelField(position, Styles.disabledTooltip);
             }

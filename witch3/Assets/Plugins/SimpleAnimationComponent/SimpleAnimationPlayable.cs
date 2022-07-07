@@ -7,28 +7,28 @@ using System;
 
 public partial class SimpleAnimationPlayable : PlayableBehaviour
 {
-    LinkedList<QueuedState> m_StateQueue;
-    StateManagement m_States;
-    bool m_Initialized;
+    LinkedList<QueuedState> _stateQueue;
+    StateManagement _states;
+    bool _initialized;
 
-    bool m_KeepStoppedPlayablesConnected = true;
+    bool _keepStoppedPlayablesConnected = true;
     public bool keepStoppedPlayablesConnected
     {
-        get { return m_KeepStoppedPlayablesConnected; }
+        get { return _keepStoppedPlayablesConnected; }
         set
         {
-            if (value != m_KeepStoppedPlayablesConnected)
+            if (value != _keepStoppedPlayablesConnected)
             {
-                m_KeepStoppedPlayablesConnected = value;
+                _keepStoppedPlayablesConnected = value;
             }
         }
     }
 
     void UpdateStoppedPlayablesConnections()
     {
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
             if (state == null)
                 continue;
             if (state.enabled)
@@ -44,38 +44,42 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         }
     }
 
-    protected Playable m_ActualPlayable;
-    protected Playable self { get { return m_ActualPlayable; } }
+    protected Playable _actualPlayable;
+    protected Playable self { get { return _actualPlayable; } }
     public Playable playable { get { return self; } }
     protected PlayableGraph graph { get { return self.GetGraph(); } }
 
-    AnimationMixerPlayable m_Mixer;
+    public event Action<int> OnAnimationStarted;
+    public event Action<int> OnAnimationStopped;
+    public event Action<int> OnAnimationCompleted;
 
-    public System.Action onDone = null;
+    AnimationMixerPlayable _mixer;
+
+    public event System.Action OnDone = null;
     public SimpleAnimationPlayable()
     {
-        m_States = new StateManagement();
-        this.m_StateQueue = new LinkedList<QueuedState>();
+        _states = new StateManagement();
+        this._stateQueue = new LinkedList<QueuedState>();
     }
 
     public Playable GetInput(int index)
     {
-        if (index >= m_Mixer.GetInputCount())
+        if (index >= _mixer.GetInputCount())
             return Playable.Null;
 
-        return m_Mixer.GetInput(index);
+        return _mixer.GetInput(index);
     }
 
     public override void OnPlayableCreate(Playable playable)
     {
-        m_ActualPlayable = playable;
+        _actualPlayable = playable;
 
-        var mixer = AnimationMixerPlayable.Create(graph, 1, true);
-        m_Mixer = mixer;
+        var mixer = AnimationMixerPlayable.Create(graph, 1);
+        _mixer = mixer;
 
         self.SetInputCount(1);
         self.SetInputWeight(0, 1);
-        graph.Connect(m_Mixer, 0, self, 0);
+        graph.Connect(_mixer, 0, self, 0);
     }
 
     public IEnumerable<IState> GetStates()
@@ -85,7 +89,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public IState GetState(string name)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             return null;
@@ -96,16 +100,21 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private StateInfo DoAddClip(string name, AnimationClip clip)
     {
+        if(!clip.isLooping && clip.wrapMode == WrapMode.Default)
+        {
+            //clip.wrapMode = WrapMode.Once;
+        }
+
         //Start new State
-        StateInfo newState = m_States.InsertState();
+        StateInfo newState = _states.InsertState();
         newState.Initialize(name, clip, clip.wrapMode);
         //Find at which input the state will be connected
         int index = newState.index;
 
         //Increase input count if needed
-        if (index == m_Mixer.GetInputCount())
+        if (index == _mixer.GetInputCount())
         {
-            m_Mixer.SetInputCount(index + 1);
+            _mixer.SetInputCount(index + 1);
         }
 
         var clipPlayable = AnimationClipPlayable.Create(graph, clip);
@@ -114,6 +123,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         if (!clip.isLooping || newState.wrapMode == WrapMode.Once)
         {
             clipPlayable.SetDuration(clip.length);
+            clipPlayable.Play();
         }
         newState.SetPlayable(clipPlayable);
         newState.Pause();
@@ -126,7 +136,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool AddClip(AnimationClip clip, string name)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state != null)
         {
             Debug.LogError(string.Format("Cannot add state with name {0}, because a state with that name already exists", name));
@@ -142,7 +152,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool RemoveClip(string name)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot remove state with name {0}, because a state with that name doesn't exist", name));
@@ -151,19 +161,19 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
         RemoveClones(state);
         InvalidateStates();
-        m_States.RemoveState(state.index);
+        _states.RemoveState(state.index);
         return true;
     }
 
     public bool RemoveClip(AnimationClip clip)
     {
         InvalidateStates();
-        return m_States.RemoveClip(clip);
+        return _states.RemoveClip(clip);
     }
 
     public bool Play(string name)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot play state with name {0} because there is no state with that name", name));
@@ -175,13 +185,18 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private bool Play(int index)
     {
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
             if (state.index == index)
             {
                 state.Enable();
                 state.ForceWeight(1.0f);
+
+                if (OnAnimationStarted != null)
+                {
+                    OnAnimationStarted(index);
+                }
             }
             else
             {
@@ -194,7 +209,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool PlayQueued(string name, QueueMode queueMode)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot queue Play to state with name {0} because there is no state with that name", name));
@@ -214,13 +229,13 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             return true;
         }
 
-        m_StateQueue.AddLast(new QueuedState(StateInfoToHandle(newState), 0f));
+        _stateQueue.AddLast(new QueuedState(StateInfoToHandle(newState), 0f));
         return true;
     }
 
     public void Rewind(string name)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot Rewind state with name {0} because there is no state with that name", name));
@@ -232,29 +247,29 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private void Rewind(int index)
     {
-        m_States.SetStateTime(index, 0f);
+        _states.SetStateTime(index, 0f);
     }
 
     public void Rewind()
     {
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            if (m_States[i] != null)
-                m_States.SetStateTime(i, 0f);
+            if (_states[i] != null)
+                _states.SetStateTime(i, 0f);
         }
     }
 
     private void RemoveClones(StateInfo state)
     {
-        var it = m_StateQueue.First;
+        var it = _stateQueue.First;
         while (it != null)
         {
             var next = it.Next;
 
-            StateInfo queuedState = m_States[it.Value.state.index];
+            StateInfo queuedState = _states[it.Value._state.index];
             if (queuedState.parentState.index == state.index)
             {
-                m_StateQueue.Remove(it);
+                _stateQueue.Remove(it);
                 DoStop(queuedState.index);
             }
 
@@ -264,7 +279,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool Stop(string name)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot stop state with name {0} because there is no state with that name", name));
@@ -280,10 +295,10 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private void DoStop(int index)
     {
-        StateInfo state = m_States[index];
+        StateInfo state = _states[index];
         if (state == null)
             return;
-        m_States.StopState(index, state.isClone);
+        _states.StopState(index, state.isClone);
         if (!state.isClone)
         {
             RemoveClones(state);
@@ -292,7 +307,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool StopAll()
     {
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
             DoStop(i);
         }
@@ -304,12 +319,12 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool IsPlaying()
     {
-        return m_States.AnyStatePlaying();
+        return _states.AnyStatePlaying();
     }
 
     public bool IsPlaying(string stateName)
     {
-        StateInfo state = m_States.FindState(stateName);
+        StateInfo state = _states.FindState(stateName);
         if (state == null)
             return false;
 
@@ -318,9 +333,9 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private bool IsClonePlaying(StateInfo state)
     {
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            StateInfo otherState = m_States[i];
+            StateInfo otherState = _states[i];
             if (otherState == null)
                 continue;
 
@@ -336,9 +351,9 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
     public int GetClipCount()
     {
         int count=0;
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            if (m_States[i] != null)
+            if (_states[i] != null)
             {
                 count++;
             }
@@ -360,15 +375,15 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private bool Crossfade(int index, float time)
     {
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
             if (state == null)
                 continue;
 
             if (state.index == index)
             {
-                m_States.EnableState(index);
+                _states.EnableState(index);
             }
 
             if (state.enabled == false)
@@ -383,7 +398,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private StateInfo CloneState(int index)
     {
-        StateInfo original = m_States[index];
+        StateInfo original = _states[index];
         string newName = original.stateName + "Queued Clone";
         StateInfo clone = DoAddClip(newName, original.clip);
         clone.SetAsCloneOf(new StateHandle(this, original.index, original.playable));
@@ -392,7 +407,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool Crossfade(string name, float time)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot crossfade to state with name {0} because there is no state with that name", name));
@@ -407,7 +422,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool CrossfadeQueued(string name, float time, QueueMode queueMode)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot queue crossfade to state with name {0} because there is no state with that name", name));
@@ -427,15 +442,15 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             return true;
         }
 
-        m_StateQueue.AddLast(new QueuedState(StateInfoToHandle(newState), time));
+        _stateQueue.AddLast(new QueuedState(StateInfoToHandle(newState), time));
         return true;
     }
 
     private bool Blend(int index, float targetWeight, float time)
     {
-        StateInfo state = m_States[index];
+        StateInfo state = _states[index];
         if (state.enabled == false)
-            m_States.EnableState(index);
+            _states.EnableState(index);
 
         if (time == 0f)
         {
@@ -451,7 +466,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool Blend(string name, float targetWeight, float time)
     {
-        StateInfo state = m_States.FindState(name);
+        StateInfo state = _states.FindState(name);
         if (state == null)
         {
             Debug.LogError(string.Format("Cannot blend state with name {0} because there is no state with that name", name));
@@ -467,15 +482,15 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         if (!self.IsValid())
             return;
 
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
             if (state == null)
                 continue;
 
             if (state.fadeSpeed == 0f && state.targetWeight == 0f)
             {
-                Playable input = m_Mixer.GetInput(state.index);
+                Playable input = _mixer.GetInput(state.index);
                 if (!input.Equals(Playable.Null))
                 {
                     input.ResetTime(0f);
@@ -486,13 +501,13 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private void UpdateDoneStatus()
     {
-        if (!m_States.AnyStatePlaying())
+        if (!_states.AnyStatePlaying())
         {
             bool wasDone = playable.IsDone();
             playable.SetDone(true);
-            if (!wasDone && onDone != null)
+            if (!wasDone && OnDone != null)
             {
-                onDone();
+                OnDone();
             }
         }
 
@@ -500,18 +515,18 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private void CleanClonedStates()
     {
-        for (int i = m_States.Count-1; i >= 0; i--)
+        for (int i = _states.count-1; i >= 0; i--)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
             if (state == null)
                 continue;
 
             if (state.isReadyForCleanup)
             {
-                Playable toDestroy = m_Mixer.GetInput(state.index);
-                graph.Disconnect(m_Mixer, state.index);
+                Playable toDestroy = _mixer.GetInput(state.index);
+                graph.Disconnect(_mixer, state.index);
                 graph.DestroyPlayable(toDestroy);
-                m_States.RemoveState(i);
+                _states.RemoveState(i);
             }
         }
     }
@@ -520,24 +535,24 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
     {
         if (keepStoppedPlayablesConnected)
         {
-            m_States[index].Pause();
+            _states[index].Pause();
         }
-        graph.Disconnect(m_Mixer, index);
+        graph.Disconnect(_mixer, index);
     }
 
     private void ConnectInput(int index)
     {
-        StateInfo state = m_States[index];
-        graph.Connect(state.playable, 0, m_Mixer, state.index);
+        StateInfo state = _states[index];
+        graph.Connect(state.playable, 0, _mixer, state.index);
     }
 
     private void UpdateStates(float deltaTime)
     {
         bool mustUpdateWeights = false;
         float totalWeight = 0f;
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
 
             //Skip deleted states
             if (state == null)
@@ -568,7 +583,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
                 if (!keepStoppedPlayablesConnected)
                 {
-                    Playable input = m_Mixer.GetInput(i);
+                    Playable input = _mixer.GetInput(i);
                     //if state is disabled but the corresponding input is connected, disconnect it
                     if (input.IsValid() && !state.enabled)
                     {
@@ -611,14 +626,14 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         if (mustUpdateWeights)
         {
             bool hasAnyWeight = totalWeight > 0.0f;
-            for (int i = 0; i < m_States.Count; i++)
+            for (int i = 0; i < _states.count; i++)
             {
-                StateInfo state = m_States[i];
+                StateInfo state = _states[i];
                 if (state == null)
                     continue;
 
                 float weight = hasAnyWeight ? state.weight / totalWeight : 0.0f;
-                m_Mixer.SetInputWeight(state.index, weight);
+                _mixer.SetInputWeight(state.index, weight);
             }
         }
     }
@@ -627,9 +642,9 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
     {
         float longestTime = -1f;
 
-        for (int i = 0; i < m_States.Count; i++)
+        for (int i = 0; i < _states.count; i++)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
             //Skip deleted states
             if (state == null || !state.enabled || !state.playable.IsValid())
                 continue;
@@ -640,7 +655,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
             }
 
             float speed = state.speed;
-            float stateTime = m_States.GetStateTime(state.index);
+            float stateTime = _states.GetStateTime(state.index);
             float remainingTime;
             if (speed > 0 )
             {
@@ -666,15 +681,15 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     private void ClearQueuedStates()
     {
-        using (var it = m_StateQueue.GetEnumerator())
+        using (var it = _stateQueue.GetEnumerator())
         {
             while (it.MoveNext())
             {
                 QueuedState queuedState = it.Current;
-                m_States.StopState(queuedState.state.index, true);
+                _states.StopState(queuedState._state.index, true);
             }
         }
-        m_StateQueue.Clear();
+        _stateQueue.Clear();
     }
 
     private void UpdateQueuedStates()
@@ -682,7 +697,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         bool mustCalculateQueueTimes = true;
         float remainingTime = -1f;
 
-        var it = m_StateQueue.First;
+        var it = _stateQueue.First;
         while(it != null)
         {
             if (mustCalculateQueueTimes)
@@ -693,12 +708,12 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
             QueuedState queuedState = it.Value;
 
-            if (queuedState.fadeTime >= remainingTime)
+            if (queuedState._fadeTime >= remainingTime)
             {
-                Crossfade(queuedState.state.index, queuedState.fadeTime);
+                Crossfade(queuedState._state.index, queuedState._fadeTime);
                 mustCalculateQueueTimes = true;
-                m_StateQueue.RemoveFirst();
-                it = m_StateQueue.First;
+                _stateQueue.RemoveFirst();
+                it = _stateQueue.First;
             }
             else
             {
@@ -710,10 +725,10 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     void InvalidateStateTimes()
     {
-        int count = m_States.Count;
+        int count = _states.count;
         for (int i = 0; i < count; i++)
         {
-            StateInfo state = m_States[i];
+            StateInfo state = _states[i];
             if (state == null)
                 continue;
 
@@ -740,7 +755,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         if (!ValidateIndex(index))
             return false;
 
-        StateInfo state = m_States[index];
+        StateInfo state = _states[index];
         if (state == null || !state.playable.IsValid() || state.playable.GetHandle() != input.GetHandle())
             return false;
 
@@ -749,6 +764,6 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
 
     public bool ValidateIndex(int index)
     {
-        return index >= 0 && index < m_States.Count;
+        return index >= 0 && index < _states.count;
     }
 }
