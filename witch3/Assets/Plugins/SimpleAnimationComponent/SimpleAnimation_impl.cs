@@ -144,6 +144,7 @@ public partial class SimpleAnimation: MonoBehaviour, IAnimationClipSource
         public AnimationClip clip;
         public string name;
         public bool defaultState;
+        public WrapMode wrapMode;
     }
 
     protected void Kick()

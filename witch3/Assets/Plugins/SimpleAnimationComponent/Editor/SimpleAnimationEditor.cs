@@ -69,19 +69,22 @@ class StateDrawer : PropertyDrawer
 
         EditorGUILayout.BeginHorizontal();
         // Calculate rects
-        Rect clipRect = new Rect(position.x, position.y, position.width/2 - 5, position.height);
-        Rect nameRect = new Rect(position.x + position.width/2 + 5, position.y, position.width/2 - 5, position.height);
+        var width = position.width / 3;
+        Rect clipRect = new Rect(position.x, position.y, width - 5, position.height);
+        Rect nameRect = new Rect(position.x + width + 5, position.y, width - 5, position.height);
+        Rect wrapRect = new Rect(position.x + width * 2 + 5, position.y, width - 5, position.height);
 
 
         EditorGUI.BeginDisabledGroup(property.FindPropertyRelative("defaultState").boolValue);
-            EditorGUI.PropertyField(nameRect, property.FindPropertyRelative("clip"), GUIContent.none);
-            EditorGUI.PropertyField(clipRect, property.FindPropertyRelative("name"), GUIContent.none);
-            if (property.FindPropertyRelative("defaultState").boolValue)
-            {
-                EditorGUI.LabelField(position, Styles.disabledTooltip);
-            }
-        
+        EditorGUI.PropertyField(nameRect, property.FindPropertyRelative("name"), GUIContent.none);
+        EditorGUI.PropertyField(clipRect, property.FindPropertyRelative("clip"), GUIContent.none);
+        if (property.FindPropertyRelative("defaultState").boolValue)
+        {
+            EditorGUI.LabelField(position, Styles.disabledTooltip);
+        }
+
         EditorGUI.EndDisabledGroup();
+        EditorGUI.PropertyField(wrapRect, property.FindPropertyRelative("wrapMode"), GUIContent.none);
 
         EditorGUILayout.EndHorizontal();
         // Set indent back to what it was
