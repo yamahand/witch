@@ -1,0 +1,18 @@
+{
+    "name": "EasyAnimation-Editor",
+    "rootNamespace": "",
+    "references": [
+        "GUID:535a8a30d62e1fe47b1d3195fd554774"
+    ],
+    "includePlatforms": [
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
