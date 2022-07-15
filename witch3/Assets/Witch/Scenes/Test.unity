@@ -654,6 +654,7 @@ GameObject:
   - component: {fileID: 2090227856}
   - component: {fileID: 2090227855}
   - component: {fileID: 2090227857}
+  - component: {fileID: 2090227858}
   m_Layer: 3
   m_Name: PlayerVisual
   m_TagString: Untagged
@@ -744,9 +745,9 @@ MonoBehaviour:
   _animatePhysics: 0
   _cullingMode: 1
   _wrapMode: 0
-  _clip: {fileID: 7400000, guid: 58905173e7fe24744a52db44bd9a0fa7, type: 2}
+  _clip: {fileID: 7400000, guid: 17d5b7bf81bad014c97ff30e0d8f661e, type: 2}
   _states:
-  - clip: {fileID: 7400000, guid: 58905173e7fe24744a52db44bd9a0fa7, type: 2}
+  - clip: {fileID: 7400000, guid: 17d5b7bf81bad014c97ff30e0d8f661e, type: 2}
     name: Default
     defaultState: 1
     wrapMode: 0
@@ -769,7 +770,7 @@ Animator:
   m_Enabled: 1
   m_Avatar: {fileID: 0}
   m_Controller: {fileID: 0}
-  m_CullingMode: 1
+  m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
@@ -790,3 +791,31 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 62837d8894afd6349a9645cfadf06261, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &2090227858
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2090227852}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9aab952fc12c81f40886577053db0cc8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _playAutomatically: 1
+  _animatePhysics: 0
+  _cullingMode: 0
+  _states:
+  - clip: {fileID: 7400000, guid: 58905173e7fe24744a52db44bd9a0fa7, type: 2}
+    name: Idle
+    defaultState: 0
+    wrapMode: 2
+  - clip: {fileID: 7400000, guid: 17d5b7bf81bad014c97ff30e0d8f661e, type: 2}
+    name: Run
+    defaultState: 0
+    wrapMode: 1
+  - clip: {fileID: 7400000, guid: 6df3673998f42de458df42dda90f020f, type: 2}
+    name: Dash
+    defaultState: 0
+    wrapMode: 1

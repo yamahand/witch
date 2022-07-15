@@ -111,6 +111,7 @@ public partial class SimpleAnimationPlayable : PlayableBehaviour
         var clipPlayable = AnimationClipPlayable.Create(graph, clip);
         clipPlayable.SetApplyFootIK(false);
         clipPlayable.SetApplyPlayableIK(false);
+        var duration = clipPlayable.GetDuration();
         if (!clip.isLooping || newState.wrapMode == WrapMode.Once)
         {
             clipPlayable.SetDuration(clip.length);
