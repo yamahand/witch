@@ -8,5 +8,6 @@ public static class Initializer
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void Initialize()
     {
+        
     }
 }

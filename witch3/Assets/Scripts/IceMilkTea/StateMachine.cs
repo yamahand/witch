@@ -24,64 +24,64 @@ using UnityEngine.Scripting;
 namespace IceMilkTea.Core
 {
     /// <summary>
-    /// �X�e�[�g�}�V���̍X�V�������ɔ��������A�������̗�O���ǂ��U�镑������\�������񋓌^�ł�
+    /// ステートマシンの更新処理中に発生した、未処理の例外をどう振る舞うかを表現した列挙型です
     /// </summary>
     public enum ImtStateMachineUnhandledExceptionMode
     {
         /// <summary>
-        /// Update�֐����Ŕ���������O�����̂܂ܗ�O�Ƃ��Ĕ��������܂��B
+        /// Update関数内で発生した例外をそのまま例外として発生させます。
         /// </summary>
         ThrowException,
 
         /// <summary>
-        /// OnUnhandledException �n���h���ɓ]������܂��B
+        /// OnUnhandledException ハンドラに転送されます。
         /// </summary>
         CatchException,
 
         /// <summary>
-        /// ���ݓ��쒆�X�e�[�g�� Error() �ɗ�O���]������܂��B
-        /// �������A���ݓ��쒆�X�e�[�g�����݂��Ȃ��ꍇ�� ThrowException �Ɠ����̐U�镑���ɂȂ�܂��B
+        /// 現在動作中ステートの Error() に例外が転送されます。
+        /// ただし、現在動作中ステートが存在しない場合は ThrowException と同等の振る舞いになります。
         /// </summary>
         CatchStateException,
     }
 
 
 
-    #region �W���X�e�[�g�}�V��������
+    #region 標準ステートマシン基底実装
     /// <summary>
-    /// �R���e�L�X�g�������Ƃ̂ł���X�e�[�g�}�V���N���X�ł�
+    /// コンテキストを持つことのできるステートマシンクラスです
     /// </summary>
-    /// <typeparam name="TContext">���̃X�e�[�g�}�V�������R���e�L�X�g�̌^</typeparam>
-    /// <typeparam name="TEvent">�X�e�[�g�}�V���֑��M����C�x���g�̌^</typeparam>
+    /// <typeparam name="TContext">このステートマシンが持つコンテキストの型</typeparam>
+    /// <typeparam name="TEvent">ステートマシンへ送信するイベントの型</typeparam>
     public class ImtStateMachine<TContext, TEvent>
     {
-        #region �X�e�[�g�N���X�{�̂Ɠ��ʃX�e�[�g�N���X�̒�`
+        #region ステートクラス本体と特別ステートクラスの定義
         /// <summary>
-        /// �X�e�[�g�}�V�������������Ԃ�\������X�e�[�g�N���X�ł��B
+        /// ステートマシンが処理する状態を表現するステートクラスです。
         /// </summary>
         public abstract class State
         {
-            // �����o�ϐ���`
+            // メンバ変数定義
             internal Dictionary<TEvent, State> transitionTable;
             internal ImtStateMachine<TContext, TEvent> stateMachine;
 
 
 
             /// <summary>
-            /// ���̃X�e�[�g����������X�e�[�g�}�V��
+            /// このステートが所属するステートマシン
             /// </summary>
             protected ImtStateMachine<TContext, TEvent> StateMachine => stateMachine;
 
 
             /// <summary>
-            /// ���̃X�e�[�g����������X�e�[�g�}�V���������Ă���R���e�L�X�g
+            /// このステートが所属するステートマシンが持っているコンテキスト
             /// </summary>
             protected TContext Context => stateMachine.Context;
 
 
 
             /// <summary>
-            /// �X�e�[�g�ɓ˓������Ƃ��̏������s���܂�
+            /// ステートに突入したときの処理を行います
             /// </summary>
             protected internal virtual void Enter()
             {
@@ -89,7 +89,7 @@ namespace IceMilkTea.Core
 
 
             /// <summary>
-            /// �X�e�[�g���X�V����Ƃ��̏������s���܂�
+            /// ステートを更新するときの処理を行います
             /// </summary>
             protected internal virtual void Update()
             {
@@ -97,7 +97,7 @@ namespace IceMilkTea.Core
 
 
             /// <summary>
-            /// �X�e�[�g����E�o�����Ƃ��̏������s���܂�
+            /// ステートから脱出したときの処理を行います
             /// </summary>
             protected internal virtual void Exit()
             {
@@ -105,41 +105,41 @@ namespace IceMilkTea.Core
 
 
             /// <summary>
-            /// �X�e�[�g�}�V���̖�������O�������������̏������s���܂��B
-            /// ������ UnhandledExceptionMode �� CatchStateException �ł���K�v������܂��B
+            /// ステートマシンの未処理例外が発生した時の処理を行います。
+            /// ただし UnhandledExceptionMode が CatchStateException である必要があります。
             /// </summary>
             /// <remarks>
-            /// �����A���̊֐��� false ��Ԃ����ꍇ�́A��O�����ǖ�������ԂƔ��f����X�e�[�g�}�V����
-            /// Update() �֐�����O�𑗏o���邱�ƂɂȂ�܂��B
+            /// もし、この関数が false を返した場合は、例外が結局未処理状態と判断されステートマシンの
+            /// Update() 関数が例外を送出することになります。
             /// </remarks>
-            /// <param name="exception">���������������̗�O</param>
-            /// <returns>��O�����������ꍇ�� true ���A�������̏ꍇ�� false ��Ԃ��܂�</returns>
+            /// <param name="exception">発生した未処理の例外</param>
+            /// <returns>例外を処理した場合は true を、未処理の場合は false を返します</returns>
             protected internal virtual bool Error(Exception exception)
             {
-                // �ʏ�͖������Ƃ��ĕԂ�
+                // 通常は未処理として返す
                 return false;
             }
 
 
             /// <summary>
-            /// �X�e�[�g�}�V�����C�x���g���󂯂鎞�ɁA���̃X�e�[�g�����̃C�x���g���K�[�h���܂�
+            /// ステートマシンがイベントを受ける時に、このステートがそのイベントをガードします
             /// </summary>
-            /// <param name="eventId">�n���ꂽ�C�x���gID</param>
-            /// <returns>�C�x���g�̎�t���K�[�h����ꍇ�� true ���A�K�[�h�����C�x���g���󂯕t����ꍇ�� false ��Ԃ��܂�</returns>
+            /// <param name="eventId">渡されたイベントID</param>
+            /// <returns>イベントの受付をガードする場合は true を、ガードせずイベントを受け付ける場合は false を返します</returns>
             protected internal virtual bool GuardEvent(TEvent eventId)
             {
-                // �ʏ�̓K�[�h���Ȃ�
+                // 通常はガードしない
                 return false;
             }
 
 
             /// <summary>
-            /// �X�e�[�g�}�V�����X�^�b�N�����X�e�[�g���|�b�v����O�ɁA���̃X�e�[�g�����̃|�b�v���K�[�h���܂�
+            /// ステートマシンがスタックしたステートをポップする前に、このステートがそのポップをガードします
             /// </summary>
-            /// <returns>�|�b�v�̓�����K�[�h����ꍇ�� true ���A�K�[�h�����Ƀ|�b�v����𑱂���ꍇ�� false ��Ԃ��܂�</returns>
+            /// <returns>ポップの動作をガードする場合は true を、ガードせずにポップ動作を続ける場合は false を返します</returns>
             protected internal virtual bool GuardPop()
             {
-                // �ʏ�̓K�[�h���Ȃ�
+                // 通常はガードしない
                 return false;
             }
         }
@@ -147,7 +147,7 @@ namespace IceMilkTea.Core
 
 
         /// <summary>
-        /// �X�e�[�g�}�V���� "�C��" ��\��������ʂȃX�e�[�g�N���X�ł�
+        /// ステートマシンで "任意" を表現する特別なステートクラスです
         /// </summary>
 #if ENABLE_IL2CPP
         [Preserve]
@@ -157,29 +157,29 @@ namespace IceMilkTea.Core
 
 
 
-        #region �񋓌^��`
+        #region 列挙型定義
         /// <summary>
-        /// �X�e�[�g�}�V����Update��Ԃ�\�����܂�
+        /// ステートマシンのUpdate状態を表現します
         /// </summary>
         private enum UpdateState
         {
             /// <summary>
-            /// �A�C�h�����O���ł��B�܂艽�����Ă��܂���
+            /// アイドリング中です。つまり何もしていません
             /// </summary>
             Idle,
 
             /// <summary>
-            /// �X�e�[�g�̓˓��������ł�
+            /// ステートの突入処理中です
             /// </summary>
             Enter,
 
             /// <summary>
-            /// �X�e�[�g�̍X�V�������ł�
+            /// ステートの更新処理中です
             /// </summary>
             Update,
 
             /// <summary>
-            /// �X�e�[�g�̒E�o�������ł�
+            /// ステートの脱出処理中です
             /// </summary>
             Exit,
         }
@@ -187,7 +187,7 @@ namespace IceMilkTea.Core
 
 
 
-        // �����o�ϐ���`
+        // メンバ変数定義
         private UpdateState updateState;
         private List<State> stateList;
         private State currentState;
@@ -198,89 +198,89 @@ namespace IceMilkTea.Core
 
 
         /// <summary>
-        /// �X�e�[�g�}�V���� Update() ���ɖ������̗�O�������������̃C�x���g�n���h���ł��B
-        /// ������ UnhandledExceptionMode �v���p�e�B�� CatchException ���ݒ肳��Ă���K�v������܂��B
-        /// false ���Ԃ����ƁA��O���������Ɣ��f���� Update() �֐�����O�𑗏o���܂��B
+        /// ステートマシンの Update() 中に未処理の例外が発生した時のイベントハンドラです。
+        /// ただし UnhandledExceptionMode プロパティに CatchException が設定されている必要があります。
+        /// false が返されると、例外が未処理と判断され Update() 関数が例外を送出します。
         /// </summary>
         public event Func<Exception, bool> UnhandledException;
 
 
 
         /// <summary>
-        /// �X�e�[�g�}�V�����ێ����Ă���R���e�L�X�g
+        /// ステートマシンが保持しているコンテキスト
         /// </summary>
         public TContext Context { get; private set; }
 
 
         /// <summary>
-        /// �X�e�[�g�}�V�����N�����Ă��邩�ǂ���
+        /// ステートマシンが起動しているかどうか
         /// </summary>
         public bool Running => currentState != null;
 
 
         /// <summary>
-        /// �X�e�[�g�}�V�����A�X�V���������ǂ����B
-        /// Update �֐����甲�����Ǝv���Ă��A���̃v���p�e�B�� true �������ꍇ�A
-        /// Update ���ɗ�O�Ȃǂŕs���ȏI���̎d�������Ă���ꍇ���l�����܂��B
+        /// ステートマシンが、更新処理中かどうか。
+        /// Update 関数から抜けたと思っても、このプロパティが true を示す場合、
+        /// Update 中に例外などで不正な終了の仕方をしている場合が考えられます。
         /// </summary>
         public bool Updating => (Running && updateState != UpdateState.Idle);
 
 
         /// <summary>
-        /// ���݂̃X�^�b�N���Ă���X�e�[�g�̐�
+        /// 現在のスタックしているステートの数
         /// </summary>
         public int StackCount => stateStack.Count;
 
 
         /// <summary>
-        /// ���݂̃X�e�[�g�̖��O���擾���܂��B
-        /// �܂��X�e�[�g�}�V�����N�����Ă��Ȃ��ꍇ�͋󕶎���ɂȂ�܂��B
+        /// 現在のステートの名前を取得します。
+        /// まだステートマシンが起動していない場合は空文字列になります。
         /// </summary>
         public string CurrentStateName => (Running ? currentState.GetType().Name : string.Empty);
 
 
         /// <summary>
-        /// SendEvent() �֐��ɂ���Ĉ�x�A�J�ڏ�ԂɂȂ�����ɍĂ� SendEvent() �ɂ��J�ڂ������������邩�ǂ���
+        /// SendEvent() 関数によって一度、遷移状態になった後に再び SendEvent() による遷移し直しを許可するかどうか
         /// </summary>
         public bool AllowRetransition { get; set; }
 
 
         /// <summary>
-        /// �������̗�O�����������ۂ̐U�镑���̐ݒ�擾�����܂�
+        /// 未処理の例外が発生した際の振る舞いの設定取得をします
         /// </summary>
         public ImtStateMachineUnhandledExceptionMode UnhandledExceptionMode { get; set; }
 
 
         /// <summary>
-        /// ���̃X�e�[�g�}�V�����Ō��Update�����X���b�hID
+        /// このステートマシンを最後にUpdateしたスレッドID
         /// </summary>
         public int LastUpdateThreadId { get; private set; }
 
 
         /// <summary>
-        /// ���̃X�e�[�g�}�V�����Ō�Ɏ󂯕t�����C�x���gID
+        /// このステートマシンが最後に受け付けたイベントID
         /// </summary>
         public TEvent LastAcceptedEventID { get; private set; }
 
 
 
         /// <summary>
-        /// ImtStateMachine �̃C���X�^���X�����������܂�
+        /// ImtStateMachine のインスタンスを初期化します
         /// </summary>
-        /// <param name="context">���̃X�e�[�g�}�V�������R���e�L�X�g</param>
-        /// <exception cref="ArgumentNullException">context �� null �ł�</exception>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�N���X�̃C���X�^���X�̐����Ɏ��s���܂���</exception>
+        /// <param name="context">このステートマシンが持つコンテキスト</param>
+        /// <exception cref="ArgumentNullException">context が null です</exception>
+        /// <exception cref="InvalidOperationException">ステートクラスのインスタンスの生成に失敗しました</exception>
         public ImtStateMachine(TContext context)
         {
-            // �n���ꂽ�R���e�L�X�g��null�Ȃ�
+            // 渡されたコンテキストがnullなら
             if (context == null)
             {
-                // null�͋�����Ȃ�
+                // nullは許されない
                 throw new ArgumentNullException(nameof(context));
             }
 
 
-            // �����o�̏�����������
+            // メンバの初期化をする
             Context = context;
             stateList = new List<State>();
             stateStack = new Stack<State>();
@@ -291,371 +291,371 @@ namespace IceMilkTea.Core
         }
 
 
-        #region �ėp���W�b�N�n
+        #region 汎用ロジック系
         /// <summary>
-        /// �^����X�e�[�g�C���X�^���X�𐶐�����t�@�N�g���֐���o�^���܂�
+        /// 型からステートインスタンスを生成するファクトリ関数を登録します
         /// </summary>
-        /// <param name="stateFactory">�o�^����t�@�N�g���֐�</param>
-        /// <exception cref="ArgumentNullException">stateFactory �� null �ł�</exception>
+        /// <param name="stateFactory">登録するファクトリ関数</param>
+        /// <exception cref="ArgumentNullException">stateFactory が null です</exception>
         public void RegisterStateFactory(Func<Type, State> stateFactory)
         {
-            // �n�b�V���Z�b�g�ɓo�^����
+            // ハッシュセットに登録する
             stateFactorySet.Add(stateFactory ?? throw new ArgumentNullException(nameof(stateFactory)));
         }
 
 
         /// <summary>
-        /// �o�^�����t�@�N�g���֐��̉��������܂�
+        /// 登録したファクトリ関数の解除をします
         /// </summary>
-        /// <param name="stateFactory">��������t�@�N�g���֐�</param>
-        /// <exception cref="ArgumentNullException">stateFactory �� null �ł�</exception>
+        /// <param name="stateFactory">解除するファクトリ関数</param>
+        /// <exception cref="ArgumentNullException">stateFactory が null です</exception>
         public void UnregisterStateFactory(Func<Type, State> stateFactory)
         {
-            // �n�b�V���Z�b�g����o�^����������
+            // ハッシュセットから登録を解除する
             stateFactorySet.Remove(stateFactory ?? throw new ArgumentNullException(nameof(stateFactory)));
         }
         #endregion
 
 
-        #region �X�e�[�g�J�ڃe�[�u���\�z�n
+        #region ステート遷移テーブル構築系
         /// <summary>
-        /// �X�e�[�g�̔C�ӑJ�ڍ\����ǉ����܂��B
+        /// ステートの任意遷移構造を追加します。
         /// </summary>
         /// <remarks>
-        /// ���̊֐��́A�J�ڌ����C�ӂ̏�Ԃ���̑J�ڂ���]����ꍇ�ɗ��p���Ă��������B
-        /// �C�ӂ̑J�ڂ́A�ʏ�̑J�ځiAny�ȊO�̑J�ڌ��j���D��x���Ⴂ���Ƃɂ��A���ӂ����Ă��������B
-        /// �܂��A�X�e�[�g�̑J�ڃe�[�u���ݒ�̓X�e�[�g�}�V�����N������O�Ɋ������Ȃ���΂Ȃ�܂���B
+        /// この関数は、遷移元が任意の状態からの遷移を希望する場合に利用してください。
+        /// 任意の遷移は、通常の遷移（Any以外の遷移元）より優先度が低いことにも、注意をしてください。
+        /// また、ステートの遷移テーブル設定はステートマシンが起動する前に完了しなければなりません。
         /// </remarks>
-        /// <typeparam name="TNextState">�C�ӏ�Ԃ���J�ڂ����ɂȂ�X�e�[�g�̌^</typeparam>
-        /// <param name="eventId">�J�ڂ�������ƂȂ�C�x���gID</param>
-        /// <exception cref="ArgumentException">���ɓ��� eventId ���ݒ肳�ꂽ�J�ڐ�X�e�[�g�����݂��܂�</exception>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A���ɋN�����ł�</exception>
+        /// <typeparam name="TNextState">任意状態から遷移する先になるステートの型</typeparam>
+        /// <param name="eventId">遷移する条件となるイベントID</param>
+        /// <exception cref="ArgumentException">既に同じ eventId が設定された遷移先ステートが存在します</exception>
+        /// <exception cref="InvalidOperationException">ステートマシンは、既に起動中です</exception>
         public void AddAnyTransition<TNextState>(TEvent eventId) where TNextState : State, new()
         {
-            // �P���ɑJ�ڌ���AnyState�Ȃ����̒P���ȑJ�ڒǉ��֐����Ă�
+            // 単純に遷移元がAnyStateなだけの単純な遷移追加関数を呼ぶ
             AddTransition<AnyState, TNextState>(eventId);
         }
 
 
         /// <summary>
-        /// �X�e�[�g�̑J�ڍ\����ǉ����܂��B
-        /// �܂��A�X�e�[�g�̑J�ڃe�[�u���ݒ�̓X�e�[�g�}�V�����N������O�Ɋ������Ȃ���΂Ȃ�܂���B
+        /// ステートの遷移構造を追加します。
+        /// また、ステートの遷移テーブル設定はステートマシンが起動する前に完了しなければなりません。
         /// </summary>
-        /// <typeparam name="TPrevState">�J�ڂ��錳�ɂȂ�X�e�[�g�̌^</typeparam>
-        /// <typeparam name="TNextState">�J�ڂ����ɂȂ�X�e�[�g�̌^</typeparam>
-        /// <param name="eventId">�J�ڂ�������ƂȂ�C�x���gID</param>
-        /// <exception cref="ArgumentException">���ɓ��� eventId ���ݒ肳�ꂽ�J�ڐ�X�e�[�g�����݂��܂�</exception>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A���ɋN�����ł�</exception>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�N���X�̃C���X�^���X�̐����Ɏ��s���܂���</exception>
+        /// <typeparam name="TPrevState">遷移する元になるステートの型</typeparam>
+        /// <typeparam name="TNextState">遷移する先になるステートの型</typeparam>
+        /// <param name="eventId">遷移する条件となるイベントID</param>
+        /// <exception cref="ArgumentException">既に同じ eventId が設定された遷移先ステートが存在します</exception>
+        /// <exception cref="InvalidOperationException">ステートマシンは、既に起動中です</exception>
+        /// <exception cref="InvalidOperationException">ステートクラスのインスタンスの生成に失敗しました</exception>
         public void AddTransition<TPrevState, TNextState>(TEvent eventId) where TPrevState : State, new() where TNextState : State, new()
         {
-            // �X�e�[�g�}�V�����N�����Ă��܂��Ă���ꍇ��
+            // ステートマシンが起動してしまっている場合は
             if (Running)
             {
-                // �����ݒ�ł��Ȃ��̂ŗ�O��f��
-                throw new InvalidOperationException("�X�e�[�g�}�V���́A���ɋN�����ł�");
+                // もう設定できないので例外を吐く
+                throw new InvalidOperationException("ステートマシンは、既に起動中です");
             }
 
 
-            // �J�ڌ��ƑJ�ڐ�̃X�e�[�g�C���X�^���X���擾
+            // 遷移元と遷移先のステートインスタンスを取得
             var prevState = GetOrCreateState<TPrevState>();
             var nextState = GetOrCreateState<TNextState>();
 
 
-            // �J�ڌ��X�e�[�g�̑J�ڃe�[�u���Ɋ��ɓ����C�x���gID�����݂��Ă�����
+            // 遷移元ステートの遷移テーブルに既に同じイベントIDが存在していたら
             if (prevState.transitionTable.ContainsKey(eventId))
             {
-                // �㏑���o�^�������Ȃ��̂ŗ�O��f��
-                throw new ArgumentException($"�X�e�[�g'{prevState.GetType().Name}'�ɂ́A���ɃC�x���gID'{eventId}'�̑J�ڂ��ݒ�ς݂ł�");
+                // 上書き登録を許さないので例外を吐く
+                throw new ArgumentException($"ステート'{prevState.GetType().Name}'には、既にイベントID'{eventId}'の遷移が設定済みです");
             }
 
 
-            // �J�ڃe�[�u���ɑJ�ڂ�ݒ肷��
+            // 遷移テーブルに遷移を設定する
             prevState.transitionTable[eventId] = nextState;
         }
 
 
         /// <summary>
-        /// �X�e�[�g�}�V�����N�����鎞�ɁA�ŏ��ɊJ�n����X�e�[�g��ݒ肵�܂��B
+        /// ステートマシンが起動する時に、最初に開始するステートを設定します。
         /// </summary>
-        /// <typeparam name="TStartState">�X�e�[�g�}�V�����N�����ɊJ�n����X�e�[�g�̌^</typeparam>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A���ɋN�����ł�</exception>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�N���X�̃C���X�^���X�̐����Ɏ��s���܂���</exception>
+        /// <typeparam name="TStartState">ステートマシンが起動時に開始するステートの型</typeparam>
+        /// <exception cref="InvalidOperationException">ステートマシンは、既に起動中です</exception>
+        /// <exception cref="InvalidOperationException">ステートクラスのインスタンスの生成に失敗しました</exception>
         public void SetStartState<TStartState>() where TStartState : State, new()
         {
-            // ���ɃX�e�[�g�}�V�����N�����Ă��܂��Ă���ꍇ��
+            // 既にステートマシンが起動してしまっている場合は
             if (Running)
             {
-                // �N�����Ă��܂����炱�̊֐��̑���͋�����Ȃ�
-                throw new InvalidOperationException("�X�e�[�g�}�V���́A���ɋN�����ł�");
+                // 起動してしまったらこの関数の操作は許されない
+                throw new InvalidOperationException("ステートマシンは、既に起動中です");
             }
 
 
-            // ���ɏ�������X�e�[�g�̐ݒ������
+            // 次に処理するステートの設定をする
             nextState = GetOrCreateState<TStartState>();
         }
         #endregion
 
 
-        #region �X�e�[�g�X�^�b�N����n
+        #region ステートスタック操作系
         /// <summary>
-        /// ���ݎ��s���̃X�e�[�g���A�X�e�[�g�X�^�b�N�Ƀv�b�V�����܂�
+        /// 現在実行中のステートを、ステートスタックにプッシュします
         /// </summary>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A�܂��N�����Ă��܂���</exception>
+        /// <exception cref="InvalidOperationException">ステートマシンは、まだ起動していません</exception>
         public void PushState()
         {
-            // ���������܂����ݎ��s���̃X�e�[�g�����݂��Ă��Ȃ��Ȃ��O�𓊂���
+            // そもそもまだ現在実行中のステートが存在していないなら例外を投げる
             IfNotRunningThrowException();
 
 
-            // ���݂̃X�e�[�g���X�^�b�N�ɐς�
+            // 現在のステートをスタックに積む
             stateStack.Push(currentState);
         }
 
 
         /// <summary>
-        /// �X�e�[�g�X�^�b�N�ɐς܂�Ă���X�e�[�g�����o���A�J�ڂ̏������s���܂��B
+        /// ステートスタックに積まれているステートを取り出し、遷移の準備を行います。
         /// </summary>
         /// <remarks>
-        /// ���̊֐��̋����́A�C�x���gID�𑗂邱�Ƃ̂Ȃ��_�������� SendEvent �֐��Ɣ��Ɏ��Ă��܂��B
-        /// ���� SendEvent �ɂ���Ď��̑J�ڂ̏������ł��Ă���ꍇ�́A�X�^�b�N����X�e�[�g�̓|�b�v����邱�Ƃ͂���܂���B
+        /// この関数の挙動は、イベントIDを送ることのない点を除けば SendEvent 関数と非常に似ています。
+        /// 既に SendEvent によって次の遷移の準備ができている場合は、スタックからステートはポップされることはありません。
         /// </remarks>
-        /// <returns>�X�^�b�N����X�e�[�g���|�b�v���ꎟ�̑J�ڂ̏��������������ꍇ�� true ���A�|�b�v����X�e�[�g���Ȃ�������A�X�e�[�g�ɂ��|�b�v���K�[�h���ꂽ�ꍇ�� false ��Ԃ��܂�</returns>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A�܂��N�����Ă��܂���</exception>
+        /// <returns>スタックからステートがポップされ次の遷移の準備が完了した場合は true を、ポップするステートがなかったり、ステートによりポップがガードされた場合は false を返します</returns>
+        /// <exception cref="InvalidOperationException">ステートマシンは、まだ起動していません</exception>
         public virtual bool PopState()
         {
-            // ���������܂����ݎ��s���̃X�e�[�g�����݂��Ă��Ȃ��Ȃ��O�𓊂���
+            // そもそもまだ現在実行中のステートが存在していないなら例外を投げる
             IfNotRunningThrowException();
 
 
-            // ���������X�^�b�N����ł��邩�A���ɑJ�ڂ���X�e�[�g������ ���� �đJ�ڂ��������A�|�b�v����O�Ɍ��݂̃X�e�[�g�ɃK�[�h���ꂽ�̂Ȃ�
+            // そもそもスタックが空であるか、次に遷移するステートが存在 かつ 再遷移が未許可か、ポップする前に現在のステートにガードされたのなら
             if (stateStack.Count == 0 || (nextState != null && !AllowRetransition) || currentState.GuardPop())
             {
-                // �|�b�v���̏o���Ȃ��̂�false��Ԃ�
+                // ポップ自体出来ないのでfalseを返す
                 return false;
             }
 
 
-            // �X�e�[�g���X�^�b�N������o���Ď��̃X�e�[�g�֑J�ڂ���悤�ɂ��Đ�����Ԃ�
+            // ステートをスタックから取り出して次のステートへ遷移するようにして成功を返す
             nextState = stateStack.Pop();
             return true;
         }
 
 
         /// <summary>
-        /// �X�e�[�g�X�^�b�N�ɐς܂�Ă���X�e�[�g�����o���A���݂̃X�e�[�g�Ƃ��Ē����ɒ��ڐݒ肵�܂��B
+        /// ステートスタックに積まれているステートを取り出し、現在のステートとして直ちに直接設定します。
         /// </summary>
         /// <remarks>
-        /// ���̊֐��̋����� PopState() �֐��ƈႢ�A�|�b�v���ꂽ�X�e�[�g�����̂܂܌��ݏ������̃X�e�[�g�Ƃ��Ē����ɐݒ肷�邽�߁A
-        /// ��Ԃ̑J�ڏ����͍s��ꂸ�A�|�b�v���ꂽ�X�e�[�g�� Enter() �͌Ăяo���ꂸ���̂܂܎��񂩂� Update() ���Ăяo�����悤�ɂȂ�܂��B
+        /// この関数の挙動は PopState() 関数と違い、ポップされたステートがそのまま現在処理中のステートとして直ちに設定するため、
+        /// 状態の遷移処理は行われず、ポップされたステートの Enter() は呼び出されずそのまま次回から Update() が呼び出されるようになります。
         /// </remarks>
-        /// <returns>�X�^�b�N����X�e�[�g���|�b�v����A���݂̃X�e�[�g�Ƃ��Đݒ�o�����ꍇ�� true ���A�|�b�v����X�e�[�g���������A�|�b�v���K�[�h���ꂽ�ꍇ�� false ��Ԃ��܂�</returns>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A�܂��N�����Ă��܂���</exception>
+        /// <returns>スタックからステートがポップされ、現在のステートとして設定出来た場合は true を、ポップするステートが無いか、ポップがガードされた場合は false を返します</returns>
+        /// <exception cref="InvalidOperationException">ステートマシンは、まだ起動していません</exception>
         public virtual bool PopAndDirectSetState()
         {
-            // ���������܂����ݎ��s���̃X�e�[�g�����݂��Ă��Ȃ��Ȃ��O�𓊂���
+            // そもそもまだ現在実行中のステートが存在していないなら例外を投げる
             IfNotRunningThrowException();
 
 
-            // ���������X�^�b�N����ł��邩�A�|�b�v����O�Ɍ��݂̃X�e�[�g�ɃK�[�h���ꂽ�̂Ȃ�
+            // そもそもスタックが空であるか、ポップする前に現在のステートにガードされたのなら
             if (stateStack.Count == 0 || currentState.GuardPop())
             {
-                // �|�b�v���̏o���Ȃ��̂�false��Ԃ�
+                // ポップ自体出来ないのでfalseを返す
                 return false;
             }
 
 
-            // �X�e�[�g���X�^�b�N������o���Č��݂̃X�e�[�g�Ƃ��Đݒ肵�Đ�����Ԃ�
+            // ステートをスタックから取り出して現在のステートとして設定して成功を返す
             currentState = stateStack.Pop();
             return true;
         }
 
 
         /// <summary>
-        /// �X�e�[�g�X�^�b�N�ɐς܂�Ă���X�e�[�g������o���A���̂܂܎̂Ă܂��B
+        /// ステートスタックに積まれているステートを一つ取り出し、そのまま捨てます。
         /// </summary>
         /// <remarks>
-        /// �X�e�[�g�X�^�b�N�̈�ԏ�ɐς܂�Ă���X�e�[�g�����̂܂܎̂Ă������ɗ��p���܂��B
+        /// ステートスタックの一番上に積まれているステートをそのまま捨てたい時に利用します。
         /// </remarks>
         public void PopAndDropState()
         {
-            // �X�^�b�N����Ȃ�
+            // スタックが空なら
             if (stateStack.Count == 0)
             {
-                // ���������I��
+                // 何もせず終了
                 return;
             }
 
 
-            // �X�^�b�N����X�e�[�g�����o���ĉ����������̂܂܎̂Ă�
+            // スタックからステートを取り出して何もせずそのまま捨てる
             stateStack.Pop();
         }
 
 
         /// <summary>
-        /// �X�e�[�g�X�^�b�N�ɐς܂�Ă��邷�ׂẴX�e�[�g���̂Ă܂��B
+        /// ステートスタックに積まれているすべてのステートを捨てます。
         /// </summary>
         public void ClearStack()
         {
-            // �X�^�b�N����ɂ���
+            // スタックを空にする
             stateStack.Clear();
         }
         #endregion
 
 
-        #region �X�e�[�g�}�V������n
+        #region ステートマシン制御系
         /// <summary>
-        /// ���ݎ��s���̃X�e�[�g���A�w�肳�ꂽ�X�e�[�g���ǂ����𒲂ׂ܂��B
+        /// 現在実行中のステートが、指定されたステートかどうかを調べます。
         /// </summary>
-        /// <typeparam name="TState">�m�F����X�e�[�g�̌^</typeparam>
-        /// <returns>�w�肳�ꂽ�X�e�[�g�̏�Ԃł���� true ���A�قȂ�ꍇ�� false ��Ԃ��܂�</returns>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A�܂��N�����Ă��܂���</exception>
+        /// <typeparam name="TState">確認するステートの型</typeparam>
+        /// <returns>指定されたステートの状態であれば true を、異なる場合は false を返します</returns>
+        /// <exception cref="InvalidOperationException">ステートマシンは、まだ起動していません</exception>
         public bool IsCurrentState<TState>() where TState : State
         {
-            // ���������܂����ݎ��s���̃X�e�[�g�����݂��Ă��Ȃ��Ȃ��O�𓊂���
+            // そもそもまだ現在実行中のステートが存在していないなら例外を投げる
             IfNotRunningThrowException();
 
 
-            // ���݂̃X�e�[�g�ƌ^����v���邩�̏������̌��ʂ����̂܂ܕԂ�
+            // 現在のステートと型が一致するかの条件式の結果をそのまま返す
             return currentState.GetType() == typeof(TState);
         }
 
 
         /// <summary>
-        /// �X�e�[�g�}�V���ɃC�x���g�𑗐M���āA�X�e�[�g�J�ڂ̏������s���܂��B
+        /// ステートマシンにイベントを送信して、ステート遷移の準備を行います。
         /// </summary>
         /// <remarks>
-        /// �X�e�[�g�̑J�ڂ͒����ɍs��ꂸ�A���� Update �����s���ꂽ���ɑJ�ڏ������s���܂��B
-        /// �܂��A���̊֐��ɂ��C�x���g��t�D�揇�ʂ́A��ԍŏ��ɑJ�ڂ��󂯓��ꂽ�C�x���g�݂̂ł��� Update �ɂ���đJ�ڂ����܂ŁA�㑱�̃C�x���g�͂��ׂĎ��s���܂��B
-        /// ������ AllowRetransition �v���p�e�B�� true ���ݒ肳��Ă���ꍇ�́A�đJ�ڂ�������܂��B
-        /// ����ɁA�C�x���g�̓X�e�[�g�� Enter �܂��� Update �������ł��󂯕t���邱�Ƃ��\�ŁA�X�e�[�g�}�V���� Update ����
-        /// ���x���J�ڂ����邱�Ƃ��\�ł��� Exit ���ŃC�x���g�𑗂�ƁA�J�ڒ��ɂȂ邽�ߗ�O�����o����܂��B
+        /// ステートの遷移は直ちに行われず、次の Update が実行された時に遷移処理が行われます。
+        /// また、この関数によるイベント受付優先順位は、一番最初に遷移を受け入れたイベントのみであり Update によって遷移されるまで、後続のイベントはすべて失敗します。
+        /// ただし AllowRetransition プロパティに true が設定されている場合は、再遷移が許されます。
+        /// さらに、イベントはステートの Enter または Update 処理中でも受け付けることが可能で、ステートマシンの Update 中に
+        /// 何度も遷移をすることが可能ですが Exit 中でイベントを送ると、遷移中になるため例外が送出されます。
         /// </remarks>
-        /// <param name="eventId">�X�e�[�g�}�V���ɑ��M����C�x���gID</param>
-        /// <returns>�X�e�[�g�}�V�������M���ꂽ�C�x���g���󂯕t�����ꍇ�� true ���A�C�x���g�����ۂ܂��́A�C�x���g�̎�t���ł��Ȃ��ꍇ�� false ��Ԃ��܂�</returns>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A�܂��N�����Ă��܂���</exception>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�� Exit �������̂��߃C�x���g���󂯕t���邱�Ƃ��o���܂���</exception>
+        /// <param name="eventId">ステートマシンに送信するイベントID</param>
+        /// <returns>ステートマシンが送信されたイベントを受け付けた場合は true を、イベントを拒否または、イベントの受付ができない場合は false を返します</returns>
+        /// <exception cref="InvalidOperationException">ステートマシンは、まだ起動していません</exception>
+        /// <exception cref="InvalidOperationException">ステートが Exit 処理中のためイベントを受け付けることが出来ません</exception>
         public virtual bool SendEvent(TEvent eventId)
         {
-            // ���������܂����ݎ��s���̃X�e�[�g�����݂��Ă��Ȃ��Ȃ��O�𓊂���
+            // そもそもまだ現在実行中のステートが存在していないなら例外を投げる
             IfNotRunningThrowException();
 
 
-            // ���� Exit �������Ȃ�
+            // もし Exit 処理中なら
             if (updateState == UpdateState.Exit)
             {
-                // Exit ���� SendEvent �͋�����Ȃ�
-                throw new InvalidOperationException("�X�e�[�g�� Exit �������̂��߃C�x���g���󂯕t���邱�Ƃ��o���܂���");
+                // Exit 中の SendEvent は許されない
+                throw new InvalidOperationException("ステートが Exit 処理中のためイベントを受け付けることが出来ません");
             }
 
 
-            // ���ɑJ�ڏ��������Ă��� ���� �đJ�ڂ�������Ă��Ȃ��Ȃ�
+            // 既に遷移準備をしていて かつ 再遷移が許可されていないなら
             if (nextState != null && !AllowRetransition)
             {
-                // �C�x���g�̎�t���o���Ȃ��������Ƃ�Ԃ�
+                // イベントの受付が出来なかったことを返す
                 return false;
             }
 
 
-            // ���݂̃X�e�[�g�ɃC�x���g�K�[�h���Ăяo���āA�K�[�h���ꂽ��
+            // 現在のステートにイベントガードを呼び出して、ガードされたら
             if (currentState.GuardEvent(eventId))
             {
-                // �K�[�h����Ď��s�������Ƃ�Ԃ�
+                // ガードされて失敗したことを返す
                 return false;
             }
 
 
-            // ���ɑJ�ڂ���X�e�[�g�����݂̃X�e�[�g������o�����������Ȃ�������
+            // 次に遷移するステートを現在のステートから取り出すが見つけられなかったら
             if (!currentState.transitionTable.TryGetValue(eventId, out nextState))
             {
-                // �C�ӃX�e�[�g���炷����J�ڂ��o���Ȃ������̂Ȃ�
+                // 任意ステートからすらも遷移が出来なかったのなら
                 if (!GetOrCreateState<AnyState>().transitionTable.TryGetValue(eventId, out nextState))
                 {
-                    // �C�x���g�̎�t���o���Ȃ�����
+                    // イベントの受付が出来なかった
                     return false;
                 }
             }
 
 
-            // �Ō�Ɏ󂯕t�����C�x���gID���o���ăC�x���g�̎�t����������Ԃ�
+            // 最後に受け付けたイベントIDを覚えてイベントの受付をした事を返す
             LastAcceptedEventID = eventId;
             return true;
         }
 
 
         /// <summary>
-        /// �X�e�[�g�}�V���̏�Ԃ��X�V���܂��B
+        /// ステートマシンの状態を更新します。
         /// </summary>
         /// <remarks>
-        /// �X�e�[�g�}�V���̌��ݏ������Ă���X�e�[�g�̍X�V���s���܂����A�܂����N���̏ꍇ�� SetStartState �֐��ɂ���Đݒ肳�ꂽ�X�e�[�g���N�����܂��B
-        /// �܂��A�X�e�[�g�}�V��������N�����̏ꍇ�A�X�e�[�g��Update�͌Ăяo���ꂸ�A���̍X�V���������s����鎞�ɂȂ�܂��B
+        /// ステートマシンの現在処理しているステートの更新を行いますが、まだ未起動の場合は SetStartState 関数によって設定されたステートが起動します。
+        /// また、ステートマシンが初回起動時の場合、ステートのUpdateは呼び出されず、次の更新処理が実行される時になります。
         /// </remarks>
-        /// <exception cref="InvalidOperationException">���݂̃X�e�[�g�}�V���́A�ʂ̃X���b�h�ɂ���čX�V���������s���Ă��܂��B[UpdaterThread={LastUpdateThreadId}, CurrentThread={currentThreadId}]</exception>
-        /// <exception cref="InvalidOperationException">���݂̃X�e�[�g�}�V���́A���ɍX�V���������s���Ă��܂�</exception>
-        /// <exception cref="InvalidOperationException">�J�n�X�e�[�g���ݒ肳��Ă��Ȃ����߁A�X�e�[�g�}�V���̋N�����o���܂���</exception>
+        /// <exception cref="InvalidOperationException">現在のステートマシンは、別のスレッドによって更新処理を実行しています。[UpdaterThread={LastUpdateThreadId}, CurrentThread={currentThreadId}]</exception>
+        /// <exception cref="InvalidOperationException">現在のステートマシンは、既に更新処理を実行しています</exception>
+        /// <exception cref="InvalidOperationException">開始ステートが設定されていないため、ステートマシンの起動が出来ません</exception>
         public virtual void Update()
         {
-            // �����X�e�[�g�}�V���̍X�V��Ԃ��A�C�h�����O�ȊO��������
+            // もしステートマシンの更新状態がアイドリング以外だったら
             if (updateState != UpdateState.Idle)
             {
-                // �����ʃX���b�h�����Update�ɂ�鑽�dUpdate�Ȃ�
+                // もし別スレッドからのUpdateによる多重Updateなら
                 int currentThreadId = Thread.CurrentThread.ManagedThreadId;
                 if (LastUpdateThreadId != currentThreadId)
                 {
-                    // �ʃX���b�h����̑��dUpdate�ł��邱�Ƃ��O�œf��
-                    throw new InvalidOperationException($"���݂̃X�e�[�g�}�V���́A�ʂ̃X���b�h�ɂ���čX�V���������s���Ă��܂��B[UpdaterThread={LastUpdateThreadId}, CurrentThread={currentThreadId}]");
+                    // 別スレッドからの多重Updateであることを例外で吐く
+                    throw new InvalidOperationException($"現在のステートマシンは、別のスレッドによって更新処理を実行しています。[UpdaterThread={LastUpdateThreadId}, CurrentThread={currentThreadId}]");
                 }
 
 
-                // ���d��Update���Ăяo���Ȃ���O��f��
-                throw new InvalidOperationException("���݂̃X�e�[�g�}�V���́A���ɍX�V���������s���Ă��܂�");
+                // 多重でUpdateが呼び出せない例外を吐く
+                throw new InvalidOperationException("現在のステートマシンは、既に更新処理を実行しています");
             }
 
 
-            // Update�̋N���X���b�hID���o����
+            // Updateの起動スレッドIDを覚える
             LastUpdateThreadId = Thread.CurrentThread.ManagedThreadId;
 
 
-            // �܂����N���Ȃ�
+            // まだ未起動なら
             if (!Running)
             {
-                // ���ɏ�������ׂ��X�e�[�g�i�܂�N���J�n�X�e�[�g�j�����ݒ�Ȃ�
+                // 次に処理するべきステート（つまり起動開始ステート）が未設定なら
                 if (nextState == null)
                 {
-                    // �N�����o���Ȃ���O��f��
-                    throw new InvalidOperationException("�J�n�X�e�[�g���ݒ肳��Ă��Ȃ����߁A�X�e�[�g�}�V���̋N�����o���܂���");
+                    // 起動が出来ない例外を吐く
+                    throw new InvalidOperationException("開始ステートが設定されていないため、ステートマシンの起動が出来ません");
                 }
 
 
-                // ���ݏ������X�e�[�g�Ƃ��Đݒ肷��
+                // 現在処理中ステートとして設定する
                 currentState = nextState;
                 nextState = null;
 
 
                 try
                 {
-                    // Enter�������ł��邱�Ƃ�ݒ肵��Enter���Ă�
+                    // Enter処理中であることを設定してEnterを呼ぶ
                     updateState = UpdateState.Enter;
                     currentState.Enter();
                 }
                 catch (Exception exception)
                 {
-                    // �N�����̕��A�͌��݂̃X�e�[�g��null�������Ă��Ȃ��Ƃ܂����̂őJ�ڑO�̏�Ԃɖ߂�
+                    // 起動時の復帰は現在のステートにnullが入っていないとまずいので遷移前の状態に戻す
                     nextState = currentState;
                     currentState = null;
 
 
-                    // �X�V��Ԃ��A�C�h�����O�ɂ��āA��O�������̃G���[�n���h�����O���s���I������
+                    // 更新状態をアイドリングにして、例外発生時のエラーハンドリングを行い終了する
                     updateState = UpdateState.Idle;
                     DoHandleException(exception);
                     return;
                 }
 
 
-                // ���ɑJ�ڂ���X�e�[�g�������Ȃ�
+                // 次に遷移するステートが無いなら
                 if (nextState == null)
                 {
-                    // �N�������͏I������̂ň�U�I���
+                    // 起動処理は終わったので一旦終わる
                     updateState = UpdateState.Idle;
                     return;
                 }
@@ -664,40 +664,40 @@ namespace IceMilkTea.Core
 
             try
             {
-                // ���ɑJ�ڂ���X�e�[�g�����݂��Ă��Ȃ��Ȃ�
+                // 次に遷移するステートが存在していないなら
                 if (nextState == null)
                 {
-                    // Update�������ł��邱�Ƃ�ݒ肵��Update���Ă�
+                    // Update処理中であることを設定してUpdateを呼ぶ
                     updateState = UpdateState.Update;
                     currentState.Update();
                 }
 
 
-                // ���ɑJ�ڂ���X�e�[�g�����݂��Ă���ԃ��[�v
+                // 次に遷移するステートが存在している間ループ
                 while (nextState != null)
                 {
-                    // Exit�������ł��邱�Ƃ�ݒ肵��Exit�������Ă�
+                    // Exit処理中であることを設定してExit処理を呼ぶ
                     updateState = UpdateState.Exit;
                     currentState.Exit();
 
 
-                    // ���̃X�e�[�g�ɐ؂�ւ���
+                    // 次のステートに切り替える
                     currentState = nextState;
                     nextState = null;
 
 
-                    // Enter�������ł��邱�Ƃ�ݒ肵��Enter���Ă�
+                    // Enter処理中であることを設定してEnterを呼ぶ
                     updateState = UpdateState.Enter;
                     currentState.Enter();
                 }
 
 
-                // �X�V�������I�������A�C�h�����O�ɖ߂�
+                // 更新処理が終わったらアイドリングに戻る
                 updateState = UpdateState.Idle;
             }
             catch (Exception exception)
             {
-                // �X�V��Ԃ��A�C�h�����O�ɂ��āA��O�������̃G���[�n���h�����O���s���I������
+                // 更新状態をアイドリングにして、例外発生時のエラーハンドリングを行い終了する
                 updateState = UpdateState.Idle;
                 DoHandleException(exception);
                 return;
@@ -706,94 +706,94 @@ namespace IceMilkTea.Core
         #endregion
 
 
-        #region �������W�b�N�n
+        #region 内部ロジック系
         /// <summary>
-        /// ���������������̗�O���n���h�����O���܂�
+        /// 発生した未処理の例外をハンドリングします
         /// </summary>
-        /// <param name="exception">���������������̗�O</param>
-        /// <exception cref="ArgumentNullException">exception �� null �ł�</exception>
+        /// <param name="exception">発生した未処理の例外</param>
+        /// <exception cref="ArgumentNullException">exception が null です</exception>
         private void DoHandleException(Exception exception)
         {
-            // null��n���ꂽ��
+            // nullを渡されたら
             if (exception == null)
             {
-                // �����n���h�����O����΂悢�̂�
+                // 何をハンドリングすればよいのか
                 throw new ArgumentNullException(nameof(exception));
             }
 
 
-            // �����A��O���E�����[�h ���� �n���h�����ݒ肳��Ă���Ȃ�
+            // もし、例外を拾うモード かつ ハンドラが設定されているなら
             if (UnhandledExceptionMode == ImtStateMachineUnhandledExceptionMode.CatchException && UnhandledException != null)
             {
-                // �C�x���g���Ăяo���āA�������n���h�����O���ꂽ�̂Ȃ�
+                // イベントを呼び出して、正しくハンドリングされたのなら
                 if (UnhandledException(exception))
                 {
-                    // ���̂܂܏I��
+                    // そのまま終了
                     return;
                 }
             }
 
 
-            // �����A��O���E���ăX�e�[�g�ɔC���郂�[�h ���� ���݂̎��s�X�e�[�g���ݒ肳��Ă���̂Ȃ�
+            // もし、例外を拾ってステートに任せるモード かつ 現在の実行ステートが設定されているのなら
             if (UnhandledExceptionMode == ImtStateMachineUnhandledExceptionMode.CatchStateException && currentState != null)
             {
-                // �X�e�[�g�ɗ�O�𓊂��āA�������n���h�����O���ꂽ�̂Ȃ�
+                // ステートに例外を投げて、正しくハンドリングされたのなら
                 if (currentState.Error(exception))
                 {
-                    // ���̂܂܏I��
+                    // そのまま終了
                     return;
                 }
             }
 
 
-            // ��L�̃��[�h�ȊO�i�܂� ThrowException�j���A��O���n���h�����O����Ȃ������ifalse ��Ԃ��ꂽ�j�̂Ȃ��O���L���v�`�����Ĕ���������
+            // 上記のモード以外（つまり ThrowException）か、例外がハンドリングされなかった（false を返された）のなら例外をキャプチャして発生させる
             ExceptionDispatchInfo.Capture(exception).Throw();
         }
 
 
         /// <summary>
-        /// �X�e�[�g�}�V�������N���̏ꍇ�ɗ�O�𑗏o���܂�
+        /// ステートマシンが未起動の場合に例外を送出します
         /// </summary>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�}�V���́A�܂��N�����Ă��܂���</exception>
+        /// <exception cref="InvalidOperationException">ステートマシンは、まだ起動していません</exception>
         protected void IfNotRunningThrowException()
         {
-            // ���������܂����ݎ��s���̃X�e�[�g�����݂��Ă��Ȃ��Ȃ�
+            // そもそもまだ現在実行中のステートが存在していないなら
             if (!Running)
             {
-                // �܂��N�����炵�Ă��Ȃ��̂ŗ�O��f��
-                throw new InvalidOperationException("�X�e�[�g�}�V���́A�܂��N�����Ă��܂���");
+                // まだ起動すらしていないので例外を吐く
+                throw new InvalidOperationException("ステートマシンは、まだ起動していません");
             }
         }
 
 
         /// <summary>
-        /// �w�肳�ꂽ�X�e�[�g�̌^�̃C���X�^���X���擾���܂����A���݂��Ȃ��ꍇ�͐������Ă���擾���܂��B
-        /// �������ꂽ�C���X�^���X�́A���񂩂�擾�����悤�ɂȂ�܂��B
+        /// 指定されたステートの型のインスタンスを取得しますが、存在しない場合は生成してから取得します。
+        /// 生成されたインスタンスは、次回から取得されるようになります。
         /// </summary>
-        /// <typeparam name="TState">�擾�A�܂��͐�������X�e�[�g�̌^</typeparam>
-        /// <returns>�擾�A�܂��͐������ꂽ�X�e�[�g�̃C���X�^���X��Ԃ��܂�</returns>
-        /// <exception cref="InvalidOperationException">�X�e�[�g�N���X�̃C���X�^���X�̐����Ɏ��s���܂���</exception>
+        /// <typeparam name="TState">取得、または生成するステートの型</typeparam>
+        /// <returns>取得、または生成されたステートのインスタンスを返します</returns>
+        /// <exception cref="InvalidOperationException">ステートクラスのインスタンスの生成に失敗しました</exception>
         private TState GetOrCreateState<TState>() where TState : State, new()
         {
-            // �X�e�[�g�̐������
+            // ステートの数分回る
             var stateType = typeof(TState);
             foreach (var state in stateList)
             {
-                // �����Y���̃X�e�[�g�̌^�ƈ�v����C���X�^���X�Ȃ�
+                // もし該当のステートの型と一致するインスタンスなら
                 if (state.GetType() == stateType)
                 {
-                    // ���̃C���X�^���X��Ԃ�
+                    // そのインスタンスを返す
                     return (TState)state;
                 }
             }
 
 
-            // ���[�v���甲�����̂Ȃ�A�^��v����C���X�^���X�������Ƃ������Ȃ̂ŃC���X�^���X�𐶐����ăL���b�V������
-            var newState = CreateStateInstanceCore<TState>() ?? throw new InvalidOperationException("�X�e�[�g�N���X�̃C���X�^���X�̐����Ɏ��s���܂���");
+            // ループから抜けたのなら、型一致するインスタンスが無いという事なのでインスタンスを生成してキャッシュする
+            var newState = CreateStateInstanceCore<TState>() ?? throw new InvalidOperationException("ステートクラスのインスタンスの生成に失敗しました");
             stateList.Add(newState);
 
 
-            // �V�����X�e�[�g�ɁA���g�̎Q�ƂƑJ�ڃe�[�u���̃C���X�^���X�̏��������s���ĕԂ�
+            // 新しいステートに、自身の参照と遷移テーブルのインスタンスの初期化も行って返す
             newState.stateMachine = this;
             newState.transitionTable = new Dictionary<TEvent, State>();
             return newState;
@@ -801,43 +801,43 @@ namespace IceMilkTea.Core
 
 
         /// <summary>
-        /// �w�肳�ꂽ�X�e�[�g�̌^�̃C���X�^���X�𐶐����܂��B
+        /// 指定されたステートの型のインスタンスを生成します。
         /// </summary>
-        /// <typeparam name="TState">��������ׂ��X�e�[�^�X�̌^</typeparam>
-        /// <returns>���������C���X�^���X��Ԃ��܂�</returns>
+        /// <typeparam name="TState">生成するべきステータスの型</typeparam>
+        /// <returns>生成したインスタンスを返します</returns>
         private TState CreateStateInstanceCore<TState>() where TState : State, new()
         {
-            // ���ʂ��󂯎��ϐ���錾
+            // 結果を受け取る変数を宣言
             TState result;
 
 
-            // �o�^����Ă���t�@�N�g���֐������
+            // 登録されているファクトリ関数分回る
             var stateType = typeof(TState);
             foreach (var factory in stateFactorySet)
             {
-                // ���������݂ăC���X�^���X���������ꂽ�̂Ȃ�
+                // 生成を試みてインスタンスが生成されたのなら
                 result = (TState)factory(stateType);
                 if (result != null)
                 {
-                    // ���̃C���X�^���X��Ԃ�
+                    // このインスタンスを返す
                     return result;
                 }
             }
 
 
-            // �t�@�N�g���֐��ł��ʖڂȂ�����������֐��ɗ���
+            // ファクトリ関数でも駄目なら実装側生成関数に頼る
             return CreateStateInstance<TState>();
         }
 
 
         /// <summary>
-        /// �w�肳�ꂽ�X�e�[�g�̌^�̃C���X�^���X�𐶐����܂��B
+        /// 指定されたステートの型のインスタンスを生成します。
         /// </summary>
-        /// <typeparam name="TState">��������ׂ��X�e�[�^�X�̌^</typeparam>
-        /// <returns>���������C���X�^���X��Ԃ��܂�</returns>
+        /// <typeparam name="TState">生成するべきステータスの型</typeparam>
+        /// <returns>生成したインスタンスを返します</returns>
         protected virtual TState CreateStateInstance<TState>() where TState : State, new()
         {
-            // ���蓮��̓W�F�l���b�N��new������݂̂ŕԂ�
+            // 既定動作はジェネリックのnewをするのみで返す
             return new TState();
         }
         #endregion
@@ -846,18 +846,18 @@ namespace IceMilkTea.Core
 
 
 
-    #region ��int�C�x���g�^�x�[�X�̃X�e�[�g�}�V������
+    #region 旧intイベント型ベースのステートマシン実装
     /// <summary>
-    /// �R���e�L�X�g�������Ƃ̂ł���X�e�[�g�}�V���N���X�ł�
+    /// コンテキストを持つことのできるステートマシンクラスです
     /// </summary>
-    /// <typeparam name="TContext">���̃X�e�[�g�}�V�������R���e�L�X�g�̌^</typeparam>
+    /// <typeparam name="TContext">このステートマシンが持つコンテキストの型</typeparam>
     public class ImtStateMachine<TContext> : ImtStateMachine<TContext, int>
     {
         /// <summary>
-        /// ImtStateMachine �̃C���X�^���X�����������܂�
+        /// ImtStateMachine のインスタンスを初期化します
         /// </summary>
-        /// <param name="context">���̃X�e�[�g�}�V�������R���e�L�X�g</param>
-        /// <exception cref="ArgumentNullException">context �� null �ł�</exception>
+        /// <param name="context">このステートマシンが持つコンテキスト</param>
+        /// <exception cref="ArgumentNullException">context が null です</exception>
         public ImtStateMachine(TContext context) : base(context)
         {
         }

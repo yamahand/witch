@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -9,6 +10,12 @@ public partial class Player : MonoBehaviour
     {
         Idle,
         Jump,
+    }
+
+    private void Awake()
+    {
+        _rigidbody = GetComponent<Rigidbody2D>();
+        _ground = GetComponent<Ground>();
     }
 
     // Start is called before the first frame update
@@ -31,14 +38,24 @@ public partial class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        const float speed = 1f;
-
-        var dir = _inputActions.Player.Move.ReadValue<Vector2>();
-        transform.Translate(dir * speed * Time.deltaTime);
+        _direction = _inputActions.Player.Move.ReadValue<Vector2>();
+        _desiredVelocity = new Vector2(_direction.x, 0f) * Mathf.Max(_maxSpeed - _ground.Friction, 0f);
 
         _stateMachine.Update();
 
         Debug.Log(_stateMachine.CurrentStateName);
+    }
+
+    private void FixedUpdate()
+    {
+        _onGround = _ground.OnGround;
+        _velocity = _rigidbody.velocity;
+
+        _acceleration = _onGround ? _maxAcceleration : _maxAirAcceleration;
+        _maxSpeedChange = _acceleration * Time.deltaTime;
+        _velocity.x = Mathf.MoveTowards(_velocity.x, _desiredVelocity.x, _maxSpeedChange);
+
+        _rigidbody.velocity = _velocity;
     }
 
     private class StateBase : ImtStateMachine<Player, StateEvent>.State { }
@@ -68,9 +85,7 @@ public partial class Player : MonoBehaviour
 
         protected override void Update()
         {
-            var rigidBody = Context.GetComponent<Rigidbody2D>();
-            var vel = rigidBody.velocity;
-            if(vel.y == 0.0f)
+            if(Context._onGround)
             {
                 Context._stateMachine.SendEvent(StateEvent.Idle);
             }
@@ -80,5 +95,17 @@ public partial class Player : MonoBehaviour
     ImtStateMachine<Player, StateEvent> _stateMachine;
 
     WitchInput _inputActions = null;
-    
+
+    [SerializeField, Range(0f, 100f)] private float _maxSpeed = 4f;
+    [SerializeField, Range(0f, 100f)] private float _maxAcceleration = 35f;
+    [SerializeField, Range(0f, 100f)] private float _maxAirAcceleration = 20f;
+
+    private Vector2 _direction = Vector2.zero;
+    private Vector2 _desiredVelocity = Vector2.zero;
+    private Vector2 _velocity = Vector2.zero;
+    private Rigidbody2D _rigidbody = null;
+    private Ground _ground = null;
+    private float _maxSpeedChange = 0.0f;
+    private float _acceleration = 0.0f;
+    private bool _onGround = false;
 }
