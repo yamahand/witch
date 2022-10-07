@@ -38,12 +38,7 @@ public partial class Player : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        _direction = _inputActions.Player.Move.ReadValue<Vector2>();
-        _desiredVelocity = new Vector2(_direction.x, 0f) * Mathf.Max(_maxSpeed - _ground.Friction, 0f);
-
         _stateMachine.Update();
-
-        Debug.Log(_stateMachine.CurrentStateName);
     }
 
     private void FixedUpdate()
@@ -69,7 +64,8 @@ public partial class Player : MonoBehaviour
 
         protected override void Update()
         {
-
+            Context._direction = Context._inputActions.Player.Move.ReadValue<Vector2>();
+            Context._desiredVelocity = new Vector2(Context._direction.x, 0f) * Mathf.Max(Context._maxSpeed - Context._ground.Friction, 0f);
         }
     }
 
