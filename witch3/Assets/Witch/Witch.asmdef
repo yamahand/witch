@@ -2,9 +2,14 @@
     "name": "Witch",
     "rootNamespace": "",
     "references": [
-        "GUID:33661e06c33d31b4c9223810bf503247",
         "GUID:75469ad4d38634e559750d17036d5f7c",
-        "GUID:f425bdeb577acdd45856cf87fad21af5"
+        "GUID:9e24947de15b9834991c9d8411ea37cf",
+        "GUID:84651a3751eca9349aac36a66bba901b",
+        "GUID:33661e06c33d31b4c9223810bf503247",
+        "GUID:9a87097604f806340b969a2d9261a322",
+        "GUID:cc81e49c7593b7548a40d16894701148",
+        "GUID:fb3591be0ac2da64289809f5d6486e77",
+        "GUID:1b3789fbc8ff321409abcb29792735f2"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
