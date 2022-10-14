@@ -1,62 +1,62 @@
-﻿using System;
-using Cysharp.Text;
-using UnityEditor.SceneManagement;
-using UnityEngine;
+﻿using UnityEngine;
 
-public partial class Player
+namespace Witch.Player
 {
-    private class DebugText : MonoBehaviour
+    public partial class Player
     {
-        private void Start()
+        private class DebugText : MonoBehaviour
         {
-            _text = GetComponent<TextMesh>();
-            if (_text == null)
+            private void Start()
             {
-                _text = gameObject.AddComponent<TextMesh>();
-                _text.text = "";
-                _text.color = Color.red;
-                _text.fontSize = 8;
-                _text.anchor = TextAnchor.LowerLeft;
+                _text = GetComponent<TextMesh>();
+                if (_text == null)
+                {
+                    _text = gameObject.AddComponent<TextMesh>();
+                    _text.text = "";
+                    _text.color = Color.red;
+                    _text.fontSize = 8;
+                    _text.anchor = TextAnchor.LowerLeft;
+                }
             }
+
+            private void FixedUpdate()
+            {
+                if (_text != null)
+                {
+                    _text.text = "";
+                }
+            }
+
+            private TextMesh _text;
         }
 
-        private void FixedUpdate()
+        [System.Diagnostics.Conditional("DEBUG")]
+        private void InitDebugText()
         {
-            if (_text != null)
-            {
-                _text.text = "";
-            }
+            gameObject.AddComponent<DebugText>();
         }
-
-        private TextMesh _text;
-    }
-
-    [System.Diagnostics.Conditional("DEBUG")]
-    private void InitDebugText()
-    {
-        gameObject.AddComponent<DebugText>();
-    }
     
-    [System.Diagnostics.Conditional("DEBUG")]
-    private void AddDebugString(string str)
-    {
-        var text = GetComponent<TextMesh>();
-        if (text == null)
-            return;
-        if ( string.IsNullOrEmpty(str))
-            return;
+        [System.Diagnostics.Conditional("DEBUG")]
+        private void AddDebugString(string str)
+        {
+            var text = GetComponent<TextMesh>();
+            if (text == null)
+                return;
+            if ( string.IsNullOrEmpty(str))
+                return;
 
-        var callStack = StackTraceUtility.ExtractStackTrace();
+            var callStack = StackTraceUtility.ExtractStackTrace();
 
-        var s = callStack + " " + str;
+            var s = callStack + " " + str;
         
-        if (string.IsNullOrEmpty(text.text))
-        {
-            text.text = s;
-        }
-        else
-        {
-            text.text = text.text + "\n" + s;
+            if (string.IsNullOrEmpty(text.text))
+            {
+                text.text = s;
+            }
+            else
+            {
+                text.text = text.text + "\n" + s;
+            }
         }
     }
 }
