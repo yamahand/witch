@@ -28,9 +28,10 @@ namespace MessagePack.Formatters.Witch.SaveData
             }
 
             global::MessagePack.IFormatterResolver formatterResolver = options.Resolver;
-            writer.WriteArrayHeader(2);
+            writer.WriteArrayHeader(3);
             writer.Write(value.Id);
             global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<global::System.DateTimeOffset>(formatterResolver).Serialize(ref writer, value.Timestamp, options);
+            global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Serialize(ref writer, value.Comment, options);
         }
 
         public global::Witch.SaveData.SaveData Deserialize(ref global::MessagePack.MessagePackReader reader, global::MessagePack.MessagePackSerializerOptions options)
@@ -45,6 +46,7 @@ namespace MessagePack.Formatters.Witch.SaveData
             var length = reader.ReadArrayHeader();
             var __Id__ = default(int);
             var __Timestamp__ = default(global::System.DateTimeOffset);
+            var __Comment__ = default(string);
 
             for (int i = 0; i < length; i++)
             {
@@ -56,13 +58,16 @@ namespace MessagePack.Formatters.Witch.SaveData
                     case 1:
                         __Timestamp__ = global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<global::System.DateTimeOffset>(formatterResolver).Deserialize(ref reader, options);
                         break;
+                    case 2:
+                        __Comment__ = global::MessagePack.FormatterResolverExtensions.GetFormatterWithVerify<string>(formatterResolver).Deserialize(ref reader, options);
+                        break;
                     default:
                         reader.Skip();
                         break;
                 }
             }
 
-            var ____result = new global::Witch.SaveData.SaveData(__Id__, __Timestamp__);
+            var ____result = new global::Witch.SaveData.SaveData(__Id__, __Timestamp__, __Comment__);
             reader.Depth--;
             return ____result;
         }

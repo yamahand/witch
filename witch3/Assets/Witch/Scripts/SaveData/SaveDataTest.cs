@@ -9,7 +9,7 @@ namespace Witch.SaveData
     {
         private void Start()
         {
-            _saveData = new SaveData(1, timestamp:DateTimeOffset.Now);
+            _saveData = new SaveData(1, timestamp:DateTimeOffset.Now, "comment");
             var serializedData = MessagePackSerializer.Serialize(_saveData);
             var deserializedData = MessagePackSerializer.Deserialize<SaveData>(serializedData);
             Debug.Log($"id {deserializedData.Id}, timestamp {deserializedData.Timestamp}");
@@ -21,7 +21,17 @@ namespace Witch.SaveData
             if (UnityEngine.GUILayout.Button("セーブ"))
             {
                 _saveData.Timestamp = DateTimeOffset.Now;
-                Save(path, _saveData);
+                var option = MessagePack.MessagePackSerializerOptions.Standard
+                    .WithCompression(MessagePack.MessagePackCompression.Lz4BlockArray)
+                    .WithResolver(MessagePack.Resolvers.StaticCompositeResolver.Instance);
+                Save(path, _saveData, option);
+            }
+            if (UnityEngine.GUILayout.Button("無圧縮セーブ"))
+            {
+                var option = MessagePack.MessagePackSerializerOptions.Standard
+                    .WithResolver(MessagePack.Resolvers.StaticCompositeResolver.Instance);
+                _saveData.Timestamp = DateTimeOffset.Now;
+                Save(path + ".txt", _saveData, option);
             }
             if (UnityEngine.GUILayout.Button("ロード"))
             {
@@ -30,11 +40,11 @@ namespace Witch.SaveData
             }
         }
 
-        private void Save<T>(string path,T data)
+        private void Save<T>(string path,T data, MessagePackSerializerOptions options = null)
         {
             using (var stream = new FileStream(path, FileMode.Create, FileAccess.Write))
             {
-                MessagePackSerializer.Serialize(stream, data);
+                MessagePackSerializer.Serialize(stream, data, options);
             }
         }
 

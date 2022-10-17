@@ -1,9 +1,9 @@
 {
-    "name": "SystemAssembly",
+    "name": "Common",
     "rootNamespace": "",
     "references": [
-        "UImGui",
-        "ZString"
+        "GUID:9a87097604f806340b969a2d9261a322",
+        "GUID:3ce0cf2654ad3464aa58eb2e27f77f0d"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],

@@ -23,6 +23,9 @@ namespace Witch.SaveData
         /// <value></value>
         [Key(1)]
         public DateTimeOffset Timestamp { get; set; } = default;
+        
+        [Key(2)]
+        public string Comment { get; set; }
 
         /// <summary>
         /// 空データフラグ
@@ -35,10 +38,11 @@ namespace Witch.SaveData
         }
 
         [SerializationConstructor]
-        public SaveData(int id, DateTimeOffset timestamp)
+        public SaveData(int id, DateTimeOffset timestamp, string comment)
         {
             this.Id = id;
             this.Timestamp = timestamp;
+            this.Comment = comment;
         }
     }
 }
